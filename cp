@@ -235,7 +235,7 @@ website_secure()
 
       else
         #
-        #   Ask if it should be created
+        #   Ask if it should be Installed
         #
         echo
         echo -e "\t\t\t\tCertbot Seems To Be Missing\n"
@@ -269,13 +269,12 @@ website_secure()
         #
         #   Pause to give the user a chance to see what's on the screen
         #
-        else
-        #
-        #   They didn't want to Install Certbot 
-        #
-        return 0
-       fi 
-fi
+  else
+  #
+  #   They didn't want to Install Certbot 
+  #
+  return 0
+  fi
 }
 
 #
