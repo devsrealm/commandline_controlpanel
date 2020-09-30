@@ -219,6 +219,22 @@ fi
 }
 
 #
+#   install_certbot()
+#
+#   The certbot automation function
+#
+
+install_certbot()
+{
+
+    echo -e "\t\t\t\tYour Email Address: \c"
+    read email
+    certbot --nginx -d "$websitename" -d "www.$websitename" -m $email --agree-tos --redirect --hsts --staple-ocsp 2>> ${logfile} >/dev/null &
+    errorchecker_certbot $?
+
+}
+
+#
 #   website_secure()
 #
 #   Secure website using Let’s Encrypt SSL
@@ -227,13 +243,21 @@ fi
       
 website_secure()
 {
-  if command -v certbot >/dev/null
+  if command -v certbot 2>> ${logfile} >/dev/null
     then
       echo
-      echo -e "\t\t\t\tcertbot is available\n" "\xE2\x9C\x94"\n"
+      echo -e "\t\t\t\tcertbot is available\n" "\xE2\x9C\x94\n"
+
+      if yes_no "Do you want to secure another website"
+       then
+        #
+        # Call The install_certbot function
+        #
+        install_certbot
+        fi
    # read trash
 
-      else
+   else
         #
         #   Ask if it should be Installed
         #
@@ -246,33 +270,26 @@ website_secure()
         # Spinning, While the program installs
         spinner
 
-                    
-            #   Recheck if nginx is installed
-            #   Pause to give the user a chance to see what's on the screen
-            #
-            if command -v certbot > /dev/null
-              then
-              pause_webserver certbot
-              else
-              echo
-              echo -e "\t\t\t\tCouldn't Install Certbot"
-              return 1
-            fi
-        echo -e "\t\t\t\tYour Email Address\c"
-        read email
-        certbot --nginx -d "$websitename" -d "www.$websitename" -m $email --agree-tos -n 2>> ${logfile} >/dev/null &
+        #
+        #   If we got here, then it means that we are done with installing certbot
+        #   Call The install_certbot function away
+        #
+        install_certbot
 
-        errorchecker_certbot $?
        # reload nginx
-         sudo systemctl enable nginx  2>> ${logfile} >/dev/null &
+        sudo systemctl enable nginx 2>> ${logfile} >/dev/null &
         sudo systemctl reload nginx 2>> ${logfile} >/dev/null &
         #
         #   Pause to give the user a chance to see what's on the screen
         #
-  else
-  #
-  #   They didn't want to Install Certbot 
-  #
+
+        else
+            echo
+            echo -e "\t\t\t\tCouldn't Install certbot, check error log"
+            return 1
+
+        fi
+
   return 0
   fi
 }
@@ -523,11 +540,6 @@ if command -v mariadb 2>> ${logfile} &>/dev/null && command -v php 2>> ${logfile
           sudo systemctl start  mariadb 2>> ${logfile} >/dev/null &
 
           sudo systemctl enable  mariadb 2>> ${logfile} >/dev/null &
-
-          #   Recheck if nginx is installed
-          #   Pause to give the user a chance to see what's on the screen
-          #
-
         #
         #   They didn't want to Install PHP 
         #
