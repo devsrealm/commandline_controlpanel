@@ -1,4 +1,4 @@
-# Automate Multiple Classic and WordPress Sites
+# Automate Multiple Classic and WordPress Sites + [Caching and SSL]
 If you are tired of using control panels (I am because they are mostly not secure), and want to do everything on the server level, I wrote a menu-driven bash program that handles the installation of ClassicPress or WordPress using Nginx (+ Caching), PHP and mariadb.
 
 It also provides the ability to secure your website using Let's Encrypt, and Certbot for the auto-config. I made this optional because am I just want to do some local development, so, I won't need an SSL in that regard.
@@ -34,3 +34,7 @@ The installation is easy:
 > ./cp yourwebsite.com
 
 *Note: Make Sure You Always Add a Top Level Domain, i.e .com, .net, etc*
+
+First Posted Here: [Automate Multiple ClassicPress & Wordpress Installation](https://devsrealm.com/bash/automate-classicpress-wordpress-installation/)
+
+Reach me at: [Devsrealm](https://devsrealm.com/)
