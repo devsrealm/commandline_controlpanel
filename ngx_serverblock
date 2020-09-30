@@ -1,0 +1,74 @@
+server {
+        ## Your website name goes here.
+        server_name domain.tld;
+        ## Your only path reference.
+        root /var/www/wordpress;
+        ## This should be in your http block and if it is, it's not needed here.
+        index index.php;
+
+        set $skip_cache 0;
+
+        # POST requests and urls with a query string should always go to PHP
+        if ($request_method = POST) {
+            set $skip_cache 1;
+        }
+        if ($query_string != "") {
+            set $skip_cache 1;
+        }
+
+        if ( $cookie_woocommerce_items_in_cart = "1" ){
+            set $skip_cache 1;
+        }
+
+        # Don't cache URIs containing the following segments
+        if ($request_uri ~* "/wp-admin/|wp-.*.php|/feed/|index.php|sitemap(_index)?.xml") {
+            set $skip_cache 1;
+        }
+        if ($request_uri ~* "/(cart|checkout|my-account)/*$") {
+            set $skip_cache 1;
+        }
+
+        # Don't use the cache for logged-in users or recent commenters
+        if ($http_cookie ~* "comment_author|wordpress_[a-f0-9]+|wp-postpass|wordpress_no_cache|wordpress_logged_in") {
+            set $skip_cache 1;
+        }
+
+        location = /favicon.ico {
+                log_not_found off;
+                access_log off;
+        }
+
+        location = /robots.txt {
+                allow all;
+                log_not_found off;
+                access_log off;
+        }
+
+        location / {
+                # This is cool because no php is touched for static content.
+                # include the "?$args" part so non-default permalinks doesn't break when using query string
+                try_files $uri $uri/ /index.php?$args;
+        }
+
+        location ~ \.php$ {
+            #NOTE: You should have "cgi.fix_pathinfo = 0;" in php.ini
+            include fastcgi_params;
+            fastcgi_intercept_errors on;
+            #The following parameter can be also included in fastcgi_params file
+            fastcgi_param  SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            fastcgi_pass unix:/var/run/php/php7.2-fpm.sock;
+            include snippets/fastcgi-php.conf;
+            fastcgi_cache cpcache;
+            fastcgi_cache_valid 200 301 302 60m;
+            fastcgi_cache_use_stale error timeout updating invalid_header http_500 http_503;
+            fastcgi_cache_min_uses 1;
+            fastcgi_cache_lock on;
+            add_header X-FastCGI-Cache $upstream_cache_status;
+        }
+
+        # A long browser cache lifetime can speed up repeat visits to your page
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|webp|svg|woff|woff2|xml|ttf)$ {
+                expires max;
+                log_not_found off;
+        }
+}
