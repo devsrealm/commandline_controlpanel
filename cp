@@ -231,6 +231,8 @@ install_certbot()
     read email
     certbot --nginx -d "$websitename" -d "www.$websitename" -m $email --agree-tos --redirect --hsts --staple-ocsp 2>> ${logfile} >/dev/null &
     errorchecker_certbot $?
+    echo
+    echo -e "\t\t\t\tDone\n"
 
 }
 
