@@ -224,21 +224,6 @@ fi
 #   Secure website using Let’s Encrypt SSL
 #
 
-  
-if command -v mariadb 2>> ${logfile} &>/dev/null && command -v php 2>> ${logfile} &>/dev/null
-    then
-      echo
-      echo -e "\t\t\t\tMariadb and PHP is available\n"
-
-      if yes_no "Do you want to skip into setting up CP or WP"
-      then
-        #
-        # Call The install_cp_wp function
-        #
-        install_cp_wp
-
-        fi
-
       
 website_secure()
 {
@@ -246,7 +231,7 @@ website_secure()
     then
       echo
       echo -e "\t\t\t\tcertbot is available\n" "\xE2\x9C\x94"\n"
-    read trash
+   # read trash
 
       else
         #
