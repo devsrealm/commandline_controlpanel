@@ -5,9 +5,9 @@
 #       Of ClassicPress and WordPress      #
 #         Using Nginx Web Server           #
 #                                          #
-#    Author: The_Devsrealm_Guy             #
+#   Author: The_Devsrealm_Guy              #
 #   Website: https://devsrealm.com         #
-#   Last Edited: September 2020            #
+#   Last Edited: October 2020              #
 #                                          #
 ############################################
 
@@ -65,6 +65,18 @@ errorchecker_certbot() {
 
 }
 
+errorchecker_restore() {
+
+    errorstat=$1
+    
+    if [[ $errorstat != 0 ]];then
+    echo "Restoration Error, Check $logfile"
+    exit 1
+    fi
+
+}
+
+
 
 #
 #   pause()
@@ -103,7 +115,7 @@ yes_no()
     while :
     do
         #
-        #   Display the string passed in in $1, followed by "(Y/N)?"
+        #   Display the string passed in $1, followed by "(Y/N)?"
         #   The \c causes suppression of echo's newline
         #
         echo -e "\t\t\t\t$* (Y/N)? \c"
@@ -585,6 +597,13 @@ install_cp_wp()
             # Storing ClassicPress Mariabdb Variables To Proceed
             #
 
+            echo "
+                 Note: If You are Planning To Migrate or Move an Existing Website To This Server, Please
+                 Make Sure The Database Name, User and Password You are Inputing Corresponds To What is in your wp-config,
+                 Check The wp-config of The Old Website File To Cross Check The Details. If This is
+                 a New Website, Then Create a New Details, Good luck!
+                 " | boxes -d columns
+
             CpDBName=
             while [[ $CpDBName = "" ]]; do
               echo -e "\t\t\t\tEnter ClassicPress or WordPress Database name: \c"
@@ -603,7 +622,7 @@ install_cp_wp()
                 while : # Unless Password Matches, Keep Looping
                 do
 
-                    echo -e "\t\t\t\tEnter ClassicPress or wordpress Password For $CpDBUser: \c"
+                    echo -e "\t\t\t\tEnter ClassicPress or Wordpress Password For $CpDBUser: \c"
                     read -s CpDBPass # Adding the -s option to read hides the input from being displayed on the screen.
                     echo -e "\t\tRepeat Password: \c"
                     read -s CpDBPass2 # Adding the -s option to read hides the input from being displayed on the screen.
@@ -644,26 +663,29 @@ MYSQL_SCRIPT
 			      #
 
             #
-            # Downloading latest Wordpress tarall and extraction
+            # Preparing Temp Directing for Downloading latest Wordpress/ClassicPress tarball and extraction
             #
 
-           TMPDIR=`mktemp -d /tmp/cp_wp.XXXXXXXXXX` || exit 1
+            TMPDIR=`mktemp -d /tmp/cp_wp.XXXXXXXXXX` || exit 1
             echo
-            echo -e "\t\t\t\tOh! Wait, Is The Details You Supplied for ClassicPress or WordPress?\n"
+            echo -e "\t\t\t\tWhat Do You Wish To Do?\n"
             while :
             do
                 #
                 #   Display the ClassicPress or WordPress Decision Menu
                 #
               echo "
-                              1.) ClassicPress
-                              2.) Wordpress
-                              3.) Exit
+                              1.) Install ClassicPress
+                              2.) Install Wordpress
+                              3.) Restore Website
+                              4.) Exit
 
               " | boxes -d columns
 
-          #  echo -e "\tType cp For ClassicPress or wp for WordPress: \c"
-          echo -e "\t\t\t\tChoose 1 For ClassicPress or 2 for WordPress: \c"
+          #  
+          #   (Not Relevant Anymore) echo -e "\tType cp For ClassicPress or wp for WordPress: \c"
+          #
+          echo -e "\t\t\t\tChoose 1 For ClassicPress, 2 for WordPress or 3 to Restore an existing website: \c"
           read cp_wp_decision
 
           #
@@ -678,7 +700,7 @@ MYSQL_SCRIPT
                 if yes_no "Do You Want to Proceed With CP"
                 then
                 echo
-                echo -e "\t\t\t\tWe Proceed with  ClassicPress\n"
+                echo -e "\t\t\t\tWe Proceed with ClassicPress\n"
                 echo -e "\t\t\t\tDownloading Latest Classicpress To a Temp Directory"
         
                 wget https://www.classicpress.net/latest.tar.gz -O $TMPDIR/cplatest.tar.gz 2>> ${logfile} &>/dev/null
@@ -696,7 +718,7 @@ MYSQL_SCRIPT
 
                 errorchecker $?
 
-                cp -a $TMPDIR/classicpress/. /var/www/$websitename &>/dev/null
+                cp -a $TMPDIR/classicpress/. /var/www/$websitename 2>> ${logfile} &>/dev/null
 
                 errorchecker $?
 
@@ -720,7 +742,7 @@ MYSQL_SCRIPT
                 errorchecker $?
 
                 #
-                #   Chnage directory and file user and group to www-data
+                #   Change directory and file user and group to www-data
                 #
 
                 chown -R www-data:www-data /var/www/$websitename
@@ -734,10 +756,10 @@ MYSQL_SCRIPT
                 find /var/www/$websitename -type f -exec chmod 644 {} \;
 
                 #
-                #   Chnage permission of wp-config
+                #   Change permission of wp-config
                 #
 
-               chmod 660  /var/www/$websitename/wp-config.php
+                chmod 660  /var/www/$websitename/wp-config.php
 
                 #
                 #   Allow ClassicPress To Manage Wp-content
@@ -893,11 +915,261 @@ MYSQL_SCRIPT
                 fi
                ;;
                3) 
+                echo
+                echo -e "\t\t\t\tGood, You Selected Restore\n"
+                echo
+                if yes_no "Do You Want to Proceed With Restoring an Existing Website "
+                then
+                #
+                #   We would be using atool for the extraction, I choosed this external program
+                #   because sometimes user might want to extract format other than tar.gz. So, 
+                #   even if you want to extract a rar file, it still works, even .7z, cool right :)
+                #
+
+                    if command -v atool 2>> ${logfile} &>/dev/null # Checking if the atool package is installed
+                    then
+                      echo
+
+                      echo -e "\t\t\t\tatool dependency Okay...."
+
+                    else
+
+                      echo -e "\t\t\t\tInstalling Dependencies...."
+                      sudo apt-get -y install atool 2>> ${logfile} >/dev/null &
+                      spinner
+                      echo -e "\t\t\t\tatool dependency Installed, Moving On...." 
+
+                    fi # End Checking if the atool package is installed
+
+                 TMPDIR=`mktemp -d /tmp/website_restore_XXXXX` || exit 1
+
+                 while :
+                 do
+
+                 echo "
+                 Note: You Can Either Pass a Filename Located in The Current Directory, e.g file.zip
+                 or Specify The Directory In Which The File is Located, and Point To it, e.g /path/to/directory/file.zip
+                      " | boxes -d columns
+
+                  read -p  $'\t\t\t\t'"The Name of Your Compressed File: " website_restore
+
+                  echo "
+                  Note: You Can Either Pass a Database Located in The Current Directory, e.g database.sql
+                  or Specify The Directory In Which The Database is Located, and Point To it, e.g /path/to/directory/database.sql
+                      " | boxes -d columns
+
+                  read -p  $'\t\t\t\t'"The Name of Your Database File (This should be in .sql): " db_file
+
+                  #
+                  #   Getting The Extension of the db_file, in order to run a test if it is in .sql
+                  #
+
+                  stripfilename=$(basename -- "$db_file") # This gets the filename without the path
+
+                  extension="${stripfilename##*.}" # This Extracts the extension, in which case, we are looking for .sql
+
+                  #
+                  #   Checking if the both file exist and the db extension ends in sql
+                  #
+
+                  if [[ ! -f $website_restore && ! -f $website_restore && $extension != "sql" ]]
+                  then
+
+                      echo -e "\t\t\tYou are either not referencing a correct archive or not referencing an actual sql file, Please Point To an Actual File"
+
+                  else
+
+                      echo -e "\t\t\t\tGreat, Directory and Database file Exist... Moving On" 
+                      echo
+                      break    
+
+                  fi # END [[ ! -f $website_restore && ! -f $website_restore && $extension != "sql" ]]
+               done # Endwhile loop
+
+                  echo -e "\t\t\t\tExtracting Into a Temp Directory"
+
+                  aunpack $website_restore -X "$TMPDIR" 2>> ${logfile} &>/dev/null
+
+                  echo -e "\t\t\t\tChecking if You Have Unneccesary folder"
+
+
+                  #
+                  #   Some Users Would Have Their Archive File Contain Another Folder, e.g If The Folder is archive.zip
+                  #   when extracted, it might turn out that their is another folder in the folder, e.g /archive/public_html
+                  #   In this case, the below code would check if there is any folder at all, if there is none, we break out of the loop
+                  #
+                  #   If there is one, we copy everything recursively into the main folder, and we delete the empty folder
+                  #
+
+                  cd $TMPDIR # cd into the Temp Directory
+
+                  for i in $(ls)
+
+                  do
+
+                    if [ ! -d "$i" ]  # Id there is no folder, break out
+                    then
+                    echo -e "\t\t\t\tYou Don't Have an Unnecessary Folder, Moving On."
+                    break
+
+                    else # If there is a folder, copy all of its content into the main root folder
+
+                    echo -e "\t\t\t\tYou have an unnecessary folder, next time, make sure you are not archiving a folder along your files, \n\t\t\t\tLet me take care of that for you..."
+
+                    \cp -a $i/. $TMPDIR/
+
+                    fi
+
+                  done
+
+                  #
+                  # Go back into the script directory
+                  #
+                  SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+                  cd $SCRIPT_DIR
+
+                  spinner
+
+                  if yes_no "Before We Move On, Would You Like To Check If The wp-config data Contains The Actual DB Details "
+                  then
+
+                      if [ ! -f "$TMPDIR"/wp-config.php ]
+                          then
+                              echo -e "\t\t\twp-config.php is missing, Looks like you extracted the wrong file!"
+                              return 1
+                          else
+
+                            nano "$TMPDIR"/wp-config.php
+
+                            echo -e "\t\t\t\tMoving Into The Real Directory"
+
+                            cp -a $TMPDIR/. /var/www/$websitename 2>> ${logfile} &>/dev/null
+
+                            errorchecker_restore $?
+
+                            sudo rm -R $TMPDIR
+
+                            echo
+
+                            echo -e "\t\t\t\tAdjusting file and directory permissions..\n"
+
+                          #
+                          #   Change directory and file user and group to www-data
+                          #
+
+                          chown -R www-data:www-data /var/www/$websitename
+
+                          #
+                          #   Chnage permission of all directroy and file under websitename
+                          #
+
+                          find /var/www/$websitename -type d -exec chmod 755 {} \;
+
+                          find /var/www/$websitename -type f -exec chmod 644 {} \;
+
+                          #
+                          #   Chnage permission of wp-config
+                          #
+
+                          chmod 660  /var/www/$websitename/wp-config.php
+
+                          #
+                          #   Allow ClassicPress To Manage Wp-content
+                          #
+
+                          find /var/www/$websitename/wp-content -type d -exec chmod 775 {} \;
+                          find /var/www/$websitename/wp-content -type f -exec chmod 664 {} \;
+
+
+
+                           echo -e "\t\t\t\tFinalizing Restoration...\n"
+
+                           mysql --user="$CpDBUser" --password="$CpDBPass" $CpDBName < $db_file
+
+                          progress_bar
+                          # reload nginx
+                          sudo systemctl reload nginx &>/dev/null
+
+                          echo "
+                          $websitename restored, Check if you can access the website, and you might also want to secure it using the 
+                          Free Let's Encrypt SSL
+                              " | boxes -d columns
+
+                          return 0
+
+
+                      fi # END [ ! -f "$TMPDIR"/wp-config.php ]
+
+                  #
+                  #   They didn't want to open wp-config, so, we move on...
+                  #
+
+                  else
+
+                  echo -e "\t\t\t\tMoving Into The Real Directory"
+
+                  cp -a $TMPDIR/. /var/www/$websitename 2>> ${logfile} &>/dev/null
+
+                  errorchecker_restore $?
+
+                  sudo rm -R $TMPDIR
+
+                  echo
+
+                  echo -e "\t\t\t\tAdjusting file and directory permissions..\n"
+
+                #
+                #   Change directory and file user and group to www-data
+                #
+
+                chown -R www-data:www-data /var/www/$websitename
+
+                #
+                #   Chnage permission of all directroy and file under websitename
+                #
+
+                find /var/www/$websitename -type d -exec chmod 755 {} \;
+
+                find /var/www/$websitename -type f -exec chmod 644 {} \;
+
+                #
+                #   Chnage permission of wp-config
+                #
+
+               chmod 660  /var/www/$websitename/wp-config.php
+
+                #
+                #   Allow ClassicPress To Manage Wp-content
+                #
+
+                find /var/www/$websitename/wp-content -type d -exec chmod 775 {} \;
+                find /var/www/$websitename/wp-content -type f -exec chmod 664 {} \;
+
+                echo -e "\t\t\t\tFinalizing Restoration...\n"
+
+                mysql --user="$CpDBUser" --password="$CpDBPass" $CpDBName < $db_file
+
+                progress_bar
+                # reload nginx
+                sudo systemctl reload nginx 2>> ${logfile} >/dev/null &
+
+                echo "
+                     $websitename restored, Check if you can access the website, and you might also want to secure it using the 
+                     Free Let's Encrypt SSL
+                     " | boxes -d columns
+
+                fi # END "Before We Move On, Would You Like To Check If The wp-config data Contains The Actual DB Details "
+
+              return 0
+
+           fi # END Do You Want to Proceed With Restoring an Existing Website
+                ;;
+               4) 
                 return 0
                ;;
             *)
                 echo
-                echo -e "\tplease enter a number between 1 and 2"
+                echo -e "\tplease enter a number between 1 and 4"
                 pause
                 echo
                 ;;
@@ -1099,9 +1371,601 @@ else
     service ssh restart >/dev/null 2>&1
     service sshd restart >/dev/null 2>&1
 
+    echo  "
+    SFTP User Created
+    You can login with $sftp_user@$ip and your choosen password
+    " | boxes -d ian_jones
+
      return 0
 
   fi
+}
+
+#
+#   DNS or Domain Name System is a service that is responsible for IP address translation
+#   to a domain or hostname. It is much easier to connect and remember domain.com, than it
+#   is to remember its IP address. When you connect to the internet, your server will connect
+#   to an external DNS server (which we would be configuring below) in order to figure out the
+#   IP addresses for the website you want to visit.
+#
+#   If your domain registrar doesn't provide you a free DNS server, then use this function, this way,
+#   you would be able to create a custom DNS record, in other words, you are basically hosting your own DNS server
+#
+
+dns()
+{
+    #
+    #   Berkeley Internet Name Domain or Bind is a service that allows the publication
+    #   of DNS information on the internet, it also faciliate the resolving of DNS queries
+    #   Since Bind is the most popular DNS program, this is what we would be using.
+    #
+    if command -v named 2>> ${logfile} &>/dev/null
+    then
+      echo
+
+      echo -e "\t\t\t\tBind9 Okay...."
+
+    else
+
+      echo -e "\t\t\t\tInstalling Bind9...."
+      sudo apt-get -y install bind9 dnsutils 2>> ${logfile} >/dev/null &
+      spinner
+
+      echo -e "\t\t\t\tBind9 Installed, Moving On...." 
+    fi   
+
+    named_local=/etc/bind/named.conf.local
+    db_local=/etc/bind/db.local
+
+    #
+    #   This would store our custom_nameserver file
+    #
+    customnameserver=custom_nameserver
+
+    #
+    #   Check if the filename represents a valid file.
+    #
+    if [ ! -f $customnameserver ]
+      then
+          echo -e "\t\t\t\tYou Haven't Choosen Your Custom NameServer"
+
+          #
+          #   Ask if it should be created
+          #
+        if yes_no "Do You Want To Set a Custom NameServers"
+          then
+
+          #
+          #   Attempt to create it
+          #
+          while : # Unless NameServer Matches, Keep Looping
+          do
+          read -p  $'\t\t\t\t'"What Domain Name Do You Want To Use as Your Custom NameServers, e.g example.com: " nameserver
+          read -p  $'\t\t\t\t'"Enter Domain Name Again: " nameserver2
+
+          # 
+          #   Checking if the domain name matches
+          #
+
+          if [ $nameserver != $nameserver2 ]; then
+              echo -e "\t\t\t\tDomain name do not match, Please Try again"
+          else
+              echo -e "\t\t\t\tDomain Matches, Moving On..." 
+              echo
+echo "ns1.$nameserver
+ns2.$nameserver" >  $customnameserver
+
+echo -e "\t\t\t\tSetting Custom NameServer"
+
+          #
+          #   Store The Both Custom NameServers
+          #
+
+          ns1=`cat "$customnameserver" | sed -n '1p'`
+          ns2=`cat "$customnameserver" | sed -n '2p'`
+
+          TMPFILE=`mktemp /tmp/named.conf.XXXXXXX` || exit 1
+          cat $named_local > $TMPFILE
+          #
+          #   A zone is a domain name that is referenced in the DNS server.
+          #
+      echo -e "\t\t\t\tSetting Zone File"
+echo "// Forward Zone File of $websitename
+zone \"$nameserver\" {
+      type master;
+      file \"/etc/bind/db.$nameserver\";
+};" >> $TMPFILE
+          
+          sudo cp -f $TMPFILE $named_local # move the temp to nginx.conf
+          # remove the tempfile
+          rm "$TMPFILE"
+
+          zone_file=/etc/bind/db.$nameserver
+
+          echo -e "\t\t\t\tPreparing Zone File\n"
+          TMPFILE=`mktemp /tmp/zone.conf.XXXXXXX` || exit 1
+          sudo cp $db_local $TMPFILE
+
+
+          date=`date +"%Y%m%d"`
+
+          rootemail=`cat "$customnameserver" | sed -n '1s/ns1./root./p'`
+          #
+          #   Get Server IP
+          #
+          ip="$(ip route get 8.8.8.8 | sed -n '/src/{s/.*src *\([^ ]*\).*/\1/p;q}')"
+echo ";
+; BIND data file for $nameserver
+;
+\$TTL    604800
+@       IN      SOA      $ns1.          $rootemail. (
+                         $date"00"      ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+;
+@       IN      NS      $ns1.
+@       IN      NS      $ns2.
+@       IN      A       $ip
+ns1     IN      A       $ip
+ns2     IN      A       $ip
+www     IN      A       $ip
+ftp     IN      A       $ip
+mail    IN      A       $ip
+smtp    IN      A       $ip
+pop     IN      A       $ip
+imap    IN      A       $ip
+@       IN      TXT    \"v=spf1 a mx ip4:$ip ~all\"
+_dmarc  IN      TXT     \"v=DMARC1; p=quarantine; pct=100\"" > $TMPFILE
+
+          sudo cp -f $TMPFILE /etc/bind/db.$nameserver
+          sudo chmod 640 /etc/bind/db.$nameserver
+
+          # remove the tempfile
+          rm "$TMPFILE"
+
+          echo -e "\t\t\t\tRestarting Services\n"
+          service bind9 restart
+
+          progress_bar
+
+          echo "
+                Your Custom NameServer is $ns1 and $ns2
+                The DNS Server Won't Work Until You Change 
+                Your Domain NameServer Via Your Domain's Registrar Website
+
+                Also, You Don't Need To Create a Zone For The Custom Nameserver Domain Name (i.e $nameserver)
+                Although, You Can Edit The Zone or Add A New Zone Domain Name.
+
+                " | boxes -d columns
+
+
+          break
+          fi  # End Checking if the domain name matches
+
+          done # Endwhile loop
+
+        fi # End Set a Custom NameServers
+
+        return 0
+
+      fi #    End Check if the filename represents a valid file.
+      
+    echo -e "\t\t\t\tInitials Okay, Moving On...\n"
+    while :
+          do
+          #
+          #   Display DNS Menu
+          #
+                  echo "
+                        1.) Add New Zone to DNS server 
+                        2.) Edit DNS Zone
+                        3.) Delete DNS Domain
+                        4.) Exit
+
+                        " | boxes -d columns
+
+                #
+                #   Prompt for an answer
+                #
+                echo -e "\t\t\t\tAnswer (or 'q' to quit): \c?"
+                read ans junk
+
+                #
+                #   Empty answers (pressing ENTER) cause the menu to redisplay,
+                #   so, this goes back around the loop
+                #   We only make it to the "continue" bit if the "test"
+                #   program ("[") returned 0 (True)
+                #
+                [ "$ans" = "" ] && continue
+
+                #
+                #   Decide what to do base on user selection
+                #
+
+                    case $ans in
+                    1)     zone_add
+                    ;;
+                    2)     zone_edit
+                    ;;
+                    3)     zone_delete
+                    ;;
+                    4)     quit 0
+                    ;;
+                    q*|Q*) quit 0
+                    ;;
+                    *)     echo -e "\t\t\t\tPlease Enter a Number Between 1 and 4";;
+                esac
+                #
+                #   Pause to give the user a chance to see what's on the screen, this way, we won't lose some infos
+                #
+                pause
+
+    done              
+}
+
+zone_add ()
+
+{
+  echo
+  #
+  #   $'\t' is an ANSI-C quoting, this would make us tab the read prompt, instead of relying on echo
+  #   I should probaly change the rest of the code to follow this syntax
+  #
+  echo -e "\t\t\tYour Domain Name is $websitename\n"
+  if yes_no "Is That Correct "
+      then
+      echo -e "\t\t\t$websitename Has Been Choosen as Your Domain Zone Name"
+      read -p  $'\t\t\t\t'"Enter IP address Of Domain (The IP of the Server Hosting The Domain): " DomainIP
+
+  else
+      read -p  $'\t\t\t\t'"Enter Domain Name (FQDN), e.g, example.com: " websitename
+      read -p  $'\t\t\t\t'"Enter IP address Of Domain (The IP of the Server Hosting The Domain): " DomainIP
+
+    named_local=/etc/bind/named.conf.local
+    db_local=/etc/bind/db.local
+
+    TMPFILE=`mktemp /tmp/named.conf.XXXXXXX` || exit 1
+    cat "$named_local" > $TMPFILE
+    #
+    #   A zone is a domain name that is referenced in the DNS server.
+    #
+echo "
+// Forward Zone File of $websitename
+zone \"$websitename\" {
+    type master;
+    file \"/etc/bind/db.$websitename\";
+};" >> $TMPFILE
+    
+    sudo cp -f $TMPFILE $named_local # move the temp to nginx.conf
+    # remove the tempfile
+    rm "$TMPFILE"
+
+    zone_file=/etc/bind/db.$websitename
+
+    echo -e "\t\t\t\tPreparing Zone File\n"
+    TMPFILE=`mktemp /tmp/zone.conf.XXXXXXX` || exit 1
+    sudo cp $db_local $TMPFILE
+
+
+    date=`date +"%Y%m%d"`
+
+    rootemail=`cat custom_nameserver | sed -n '1s/ns1./root./p'`
+    #
+    #   Store The Both Custom NameServers
+    #
+
+    ns1=`cat "$customnameserver" | sed -n '1p'`
+    ns2=`cat "$customnameserver" | sed -n '2p'`
+
+    #
+    #   Get Server IP
+    #
+    ip="$(ip route get 8.8.8.8 | sed -n '/src/{s/.*src *\([^ ]*\).*/\1/p;q}')"
+
+echo ";
+; BIND data file for $websitename
+;
+\$TTL    604800
+@       IN      SOA      $ns1.          $rootemail. (
+                         $date"00"      ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+;
+@       IN      NS      $ns1.
+@       IN      NS      $ns2.
+@       IN      A       $DomainIP
+www     IN      A       $DomainIP
+ftp     IN      A       $DomainIP
+mail    IN      A       $DomainIP
+smtp    IN      A       $DomainIP
+pop     IN      A       $DomainIP
+imap    IN      A       $DomainIP
+@       IN      TXT    \"v=spf1 a mx ip4:$ip ~all\"
+_dmarc  IN      TXT     \"v=DMARC1; p=quarantine; pct=100\"" > $TMPFILE
+
+    sudo cp -f $TMPFILE /etc/bind/db.$websitename
+    sudo chmod 640 /etc/bind/db.$websitename
+
+    # remove the tempfile
+    rm "$TMPFILE"
+
+    echo -e "\t\t\t\tRestarting Services\n"
+    service bind9 restart
+
+
+
+  fi    
+}
+
+zone_edit () {
+  if yes_no "You Are About To Edit $websitename Zone File, is That Correct "
+  then
+    nano /etc/bind/db.$websitename
+    #
+    #   The Serial in the zone file is one of the record that would frustrate you like hell
+    #   If you are doing things manually, the reason is because it's not enough to just update the  
+    #   zone file any time we make a change to it, you also need to remember to increase the serial number by at least one.
+    #
+    #   Without Doing That, There is no way bind would know you updated anything, well, that is how it works
+    #   The below code would extract the seril number, delete the word seria (this is actually a comment, not useful)
+    #   and then increment it by 1 anytime we make changes, cool right
+    #
+    #
+    oldserial=`cat /etc/bind/db.$websitename | sed -n '6s/; Serial//p'`
+    newserial=$(expr $oldserial + 1)
+
+    sed -i "s/$oldserial/\\t\t\\t$newserial\\t/" /etc/bind/db.$websitename
+    echo -e "\t\t\t\tRestarting Services\n"
+    service bind9 restart
+
+    return 0
+
+   else
+
+    read -p  $'\t\t\t\t'"Enter Website You Would Like To Edit Its Zone: " zonewebsite
+
+    if [ ! -f /etc/bind/db.$zonewebsite ]
+      then
+
+          echo -e "\t\t\tThere is no such zone file"
+          return 1
+    else
+
+        nano /etc/bind/db.$zonewebsite
+
+        oldserial=`cat /etc/bind/db.$websitename | sed -n '6s/; Serial//p'`
+        newserial=$(expr $oldserial + 1)
+
+        sed -i "s/$oldserial/\\t\t\\t\t\\t\t\\t\t\\t\t\\t\t\\t$newserial\\t\t/" /etc/bind/db.$websitename
+        echo -e "\t\t\t\tRestarting Services\n"
+        service bind9 restart
+
+        return 0
+
+    fi
+
+  fi
+}
+
+zone_delete ()
+{
+  read -p  $'\t\t\t\t'"Enter Website of The Zone You Would Want Deleted: " zonewebsite
+
+  if [ ! -f /etc/bind/db.$zonewebsite ]
+      then
+
+          echo -e "\t\t\tThere is no such zone file"
+          return 1
+  else  
+
+    if yes_no "Are You Sure About The Zone Deletion of $zonewebsite "
+    then
+    TMPFILE=`mktemp /tmp/delete.$zonewebsite.XXXXX` || exit 1
+    sudo cp $named_local $TMPFILE
+    sed -nie "/\"$zonewebsite\"/,/^\};"'$/d;p;' TMPFILE
+
+    sudo cp -f $TMPFILE $named_local
+
+    rm /etc/bind/db.$zonewebsite
+
+    # remove the tempfile
+    rm "$TMPFILE"
+
+    echo -e "\t\t\t\tRestarting Services\n"
+    service bind9 restart
+
+    pause
+
+    return 
+    fi
+fi
+}
+
+#
+#   phpMyAdmin is a free software tool written in PHP, intended to handle the administration of MySQL over the Web. 
+#   phpMyAdmin supports a wide range of operations on MySQL and MariaDB. 
+#   Frequently used operations (managing databases, tables, columns, relations, indexes, users, permissions, etc) 
+#   can be performed via the user interface, while you still have the ability to 
+#   directly execute any SQL statement.
+#
+#   This function would automate the installation of phpMyAdmin, phpmyadmin would also configure the database for us, so, you don't 
+#   need to create any additonal db
+#
+#
+
+phpmyadmin()
+{
+
+dpkg -s phpmyadmin &> /dev/null  # Checking The Status of phpMyAdmin
+
+if [ $? -ne 0 ] # If phpMyAdmin is not installed
+then
+echo
+echo -e "\t\t\t\tphpmyadmin not installed...."
+echo -e "\t\t\t\tInstalling...."
+DEBIAN_FRONTEND=noninteractive apt-get -yq install phpmyadmin 2>> ${logfile} >/dev/null & # Install it without prompting interactive
+spinner
+
+echo -e "\t\t\t\tUbuntu 18.04 Ships With phpmyadmin 4.6.6, Let's Remove That and Download The Latest Version.."
+echo -e "\t\t\t\tas This can fix a couple of Errors When Using phpmyadmin"
+
+wget -O phpmyadmin_5.0.zip https://files.phpmyadmin.net/phpMyAdmin/5.0.0/phpMyAdmin-5.0.0-all-languages.zip 2>> ${logfile} >/dev/null
+
+echo -e "\t\t\t\tunzip is required for extraction, checking if it is installed...."
+
+if command -v unzip 2>> ${logfile} &>/dev/null # Checking if the unzip package is installed
+then
+    echo
+    echo -e "\t\t\t\tUnzip Okay...."
+
+else
+
+    echo -e "\t\t\t\tUnzip isn't installed, this is required for the extraction. installing...."
+    sudo apt-get -y install unzip 2>> ${logfile} >/dev/null &
+    spinner
+    echo -e "\t\t\t\tUnzip Installed, Moving On...." 
+
+fi # End Checking if the unzip package is installed
+
+echo -e "\t\t\t\tUnzipping The New phpmyadmin ...."
+
+unzip phpmyadmin_5.0.zip 2>> ${logfile} >/dev/null &
+spinner
+
+echo -e "\t\t\t\tBacking up The Former phpMyAdmin files"
+
+sudo mv /usr/share/phpmyadmin /usr/share/phpmyadmin-backed
+
+echo -e "\t\t\t\tMove The new phpmyadmin to /usr/share/phpmyadmin/ directory"
+sudo mv phpMyAdmin-5.0.0-all-languages /usr/share/phpmyadmin
+
+#
+#   Editing The Config To Point to The Right File
+#
+
+vendor_config=/usr/share/phpmyadmin/libraries/vendor_config.php
+
+sed -i "s/define('CONFIG_DIR', ROOT_PATH);/define('CONFIG_DIR', '\/etc\/phpmyadmin\/');/" $vendor_config
+
+echo -e "\t\t\t\tCreating a Cache Directory"
+
+sudo mkdir /usr/share/phpmyadmin/tmp
+sudo chown www-data:www-data /usr/share/phpmyadmin/tmp
+
+echo -e "\t\t\t\tphpmyadmin installed..."
+
+echo -e "\t\t\t\tLet's Create a New Administrative User Account For Your DATABASES"
+
+#
+# Storing phpMyAdmin Mariabdb Variables To Proceed
+#
+
+pmauser=
+while [[ $pmauser = "" ]]; do
+  echo -e "\t\t\t\tEnter New phpMyAdmin Username: \c"
+  read pmauser
+done
+
+pmapass=
+  while [[ $pmapass = "" ]]; do
+
+    while : # Unless Password Matches, Keep Looping
+    do
+
+        echo -e "\t\t\t\tEnter a Strong Password For $pmauser: \c"
+        read -s pmapass # Adding the -s option to read hides the input from being displayed on the screen.
+        echo -e "\t\tRepeat Password: \c"
+        read -s pmapass2 # Adding the -s option to read hides the input from being displayed on the screen.
+                      # 
+                      #   Checking if both passwords match
+                      #
+
+          if [ $pmapass != $pmapass2 ]; then
+            echo
+            echo -e "\t\t\t\tPasswords do not match, Please Try again"
+          else
+            echo
+            echo -e "\t\t\t\tPasswords Matches, Moving On..." 
+          break
+          fi
+    done # Endwhile loop
+
+  done
+
+mysql -sfu root <<MYSQL_SCRIPT
+GRANT ALL ON *.* TO '$pmauser'@'localhost' IDENTIFIED BY '$pmapass';
+FLUSH PRIVILEGES;
+MYSQL_SCRIPT
+
+echo "
+     Note: Input a single word below, e.g if you would love to login to your phpmyadmin through myphpmyadmin.$websitename
+     then just enter myphpmyadmin and I'll take care of the rest :), Again, make sure you enter a single word
+     " | boxes -d columns
+
+while :
+do
+
+  echo -e "\t\t\t\tYour preffered phpmyadmin url name \c"
+  read pmaurl
+
+  #
+  #   Checking if user actually passes one argument
+  #
+  #   We created an array out of the input, and checked the words in there, if it is
+  #   more than one, we warn the user, if it is only one, we break
+  #
+
+ pmaArray=($pmaurl)
+
+    if [[ ${#pmaArray[@]} -eq 1 ]]
+    then
+    break
+    else
+    echo "Please, Enter a Single word"
+    fi
+
+done
+
+TMPFILE=`mktemp /tmp/pma.nginx.XXXXXXXX` || exit 1
+
+    cat pma_nginx_config | sudo sed -e "s/phpmyadmin.com/$pmaurl.$websitename/g" > $TMPFILE
+
+    sudo cp -f $TMPFILE /etc/nginx/sites-enabled/phpmyadmin
+
+    # remove the tempfile
+    rm "$TMPFILE"
+
+    # reload nginx
+    sudo systemctl enable nginx  2>> ${logfile} >/dev/null &
+    sudo systemctl reload nginx 2>> ${logfile} >/dev/null &
+
+    if yes_no "Do you want to secure the phpmyadmin dashboard with Let's Encrypt"
+       then
+
+        echo -e "\t\t\t\tYour Email Address: \c"
+        read email
+        certbot --nginx -d "$pmaurl.$websitename"-d -m $email --agree-tos --redirect --hsts --staple-ocsp 2>> ${logfile} >/dev/null &
+        errorchecker_certbot $?
+        echo
+        echo -e "\t\t\t\tDone\n"
+
+    fi
+
+
+echo "
+     You can login via $pmaurl.$websitename using $pmauser and $pmapass, Save this in a secret place
+     The next you would need to do is to point A record to $pmaurl.$websitename, you can do that using the Manage DNS 
+     in the main menu easily.
+     " | boxes -d columns
+
+else
+echo -e "\t\t\t\tphpmyadmin installed...."
+fi
+
 }
 
 #####################################
@@ -1196,7 +2060,7 @@ do
 clear
     #
     #   Display the menu
-    #   
+    #  
     echo "
 
                            Classicpress/WordPress Installation
@@ -1206,7 +2070,9 @@ clear
                     1.) Install and Configure ClassicPress or WordPress
                     2.) Secure Site With Let's Encrypt SSL
                     3.) Create an SFTP User
-                    4.) Exit
+                    4.) Manage DNS
+                    5.) Install PHPMyAdmin
+                    6.) Exit
 
     " | boxes -d columns
     #
@@ -1217,7 +2083,7 @@ clear
 
     #
     #   Empty answers (pressing ENTER) cause the menu to redisplay,
-    #   so .... back around the loop
+    #   so, this goes back around the loop
     #   We only make it to the "continue" bit if the "test"
     #   program ("[") returned 0 (True)
     #
@@ -1233,7 +2099,11 @@ clear
         ;;
         3)     sftp
         ;;
-        4)     quit 0
+        4)     dns
+        ;;
+        5)     phpmyadmin
+        ;;
+        5)     quit 0
         ;;
         q*|Q*) quit 0
         ;;
