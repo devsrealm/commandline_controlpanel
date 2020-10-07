@@ -7,6 +7,16 @@ It also provides the ability to secure your website using Let's Encrypt, and Cer
 
 As of the time of writing this, it took only 1min.34s (proof in the tutorial link below) to configure a website on a fresh server instance, it shouldn't take more than 30s to add other sites.
 
+►Key Features
+
+- Install and Configure Multiple Classicpress or WordPress Sites
+- Restore an Exisiting Classicpress or Wordpress Website
+- Secure Sites Using Free Let's Encrypt Certificate
+- You Can Create More Than one SFTP Users (This Way, You Can Aceess Through SFTP Client, e,g Filezilla, Winscp, etc)
+- Manage Your Own Custom DNS (You can also Add New DNS Zone, Edit Zone, and Even Delete DNS Zone)
+- Install PHPMyAdmin (You can also secure it with Let's Encrypt)
+- More Features in The Works
+
 ►Key Requirements
 
 - Operating system: Ubuntu LTS
