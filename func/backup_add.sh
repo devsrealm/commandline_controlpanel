@@ -436,7 +436,8 @@ scriptpath=`realpath $0` # This get the script path + the name, e.g /path/to/scr
 scriptdir=`dirname $scriptpath` # This get the script directory e.g /path/to/script which is what I need
 
 echo "
-         Note: To Periodically Run The Backup, You Should add $scriptdir/backup_cron.sh to your crontab, and make sure you run
+         Note: To Periodically Run The Backup, You Should add 
+         $scriptdir/backup_cron.sh to your crontab, and make sure you run
          it once a day.
          " | boxes -d columns
 
