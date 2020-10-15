@@ -124,7 +124,8 @@ restore_fullsite()
   else
 
   echo "
-        Input The Date You Want To Restore, e.g, if you want to restore the backup for today ($date),
+        Input The Date You Want To Restore, e.g, 
+        if you want to restore the backup for today ($date), 
         you type $date and hit enter
         " | boxes -d columns
 
@@ -190,7 +191,8 @@ restore_dns()
   else
 
   echo "
-        Input The Date You Want To Restore, e.g, if you want to restore the backup for today ($date),
+        Input The Date You Want To Restore, e.g, 
+        if you want to restore the backup for today ($date), 
         you type $date and hit enter
         " | boxes -d columns
 
@@ -252,7 +254,8 @@ restore_sftp()
   else
 
   echo "
-        Input The Date You Want To Restore, e.g, if you want to restore the backup for today ($date),
+        Input The Date You Want To Restore, e.g, 
+        if you want to restore the backup for today ($date), 
         you type $date and hit enter
         " | boxes -d columns
 
@@ -315,7 +318,8 @@ restore_certificate()
   else
 
   echo "
-        Input The Date You Want To Restore, e.g, if you want to restore the backup for today ($date),
+        Input The Date You Want To Restore, e.g, 
+        if you want to restore the backup for today ($date),
         you type $date and hit enter
         " | boxes -d columns
 
@@ -377,7 +381,8 @@ restore_db()
   else
 
   echo "
-        Input The Date You Want To Restore, e.g, if you want to restore the backup for today ($date),
+        Input The Date You Want To Restore, e.g, 
+        if you want to restore the backup for today ($date),
         you type $date and hit enter
         " | boxes -d columns
 
