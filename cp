@@ -627,10 +627,11 @@ install_cp_wp()
             #
 
             echo "
-                 Note: If You are Planning To Migrate or Move an Existing Website To This Server, Please
-                 Make Sure The Database Name, User and Password You are Inputing Corresponds To What is in your wp-config,
-                 Check The wp-config of The Old Website File To Cross Check The Details. If This is
-                 a New Website, Then Create a New Details, Good luck!
+                 Note: If You are Planning To Migrate or Move an Existing Website To This Server, 
+                 Please Make Sure The Database Name, User and Password You are Inputing 
+                 Corresponds To What is in your wp-config,
+                 Check The wp-config of The Old Website File To Cross Check The Details. 
+                 If This is a New Website, Then Create a New Details, Good luck!
                  " | boxes -d columns
 
             CpDBName=
@@ -979,15 +980,17 @@ MYSQL_SCRIPT
                  do
 
                  echo "
-                 Note: You Can Either Pass a Filename Located in The Current Directory, e.g file.zip
-                 or Specify The Directory In Which The File is Located, and Point To it, e.g /path/to/directory/file.zip
+                 Note: You Can Either Pass a Filename Located in The Current Directory, 
+                 e.g file.zip or Specify The Directory In Which The File is Located, 
+                 and Point To it, e.g /path/to/directory/file.zip
                       " | boxes -d columns
 
                   read -p  $'\t\t\t\t'"The Name of Your Compressed File: " website_restore
 
                   echo "
-                  Note: You Can Either Pass a Database Located in The Current Directory, e.g database.sql
-                  or Specify The Directory In Which The Database is Located, and Point To it, e.g /path/to/directory/database.sql
+                  Note: You Can Either Pass a Database Located in The Current Directory, 
+                  e.g database.sql or Specify The Directory In Which The Database is Located, 
+                  and Point To it, e.g /path/to/directory/database.sql
                       " | boxes -d columns
 
                   read -p  $'\t\t\t\t'"The Name of Your Database File (This should be in .sql): " db_file
@@ -1123,8 +1126,8 @@ MYSQL_SCRIPT
                           sudo systemctl reload nginx &>/dev/null
 
                           echo "
-                          $websitename restored, Check if you can access the website, and you might also want to secure it using the 
-                          Free Let's Encrypt SSL
+                          $websitename restored, Check if you can access the website, 
+                          and you might also want to secure it using the Free Let's Encrypt SSL
                               " | boxes -d columns
 
                           return 0
@@ -1186,8 +1189,8 @@ MYSQL_SCRIPT
                 sudo systemctl reload nginx 2>> ${logfile} >/dev/null &
 
                 echo "
-                     $websitename restored, Check if you can access the website, and you might also want to secure it using the 
-                     Free Let's Encrypt SSL
+                     $websitename restored, Check if you can access the website, 
+                     and you might also want to secure it using the Free Let's Encrypt SSL
                      " | boxes -d columns
 
                 fi # END "Before We Move On, Would You Like To Check If The wp-config data Contains The Actual DB Details "
@@ -1571,7 +1574,8 @@ _dmarc  IN      TXT     \"v=DMARC1; p=quarantine; pct=100\"" > $TMPFILE
                 The DNS Server Won't Work Until You Change 
                 Your Domain NameServer Via Your Domain's Registrar Website
 
-                Also, You Don't Need To Create a Zone For The Custom Nameserver Domain Name (i.e $nameserver)
+                Also, You Don't Need To Create a Zone For The Custom Nameserver Domain Name 
+                (i.e $nameserver)
                 Although, You Can Edit The Zone or Add A New Zone Domain Name.
 
                 " | boxes -d columns
@@ -1938,8 +1942,9 @@ FLUSH PRIVILEGES;
 MYSQL_SCRIPT
 
 echo "
-     Note: Input a single word below, e.g if you would love to login to your phpmyadmin through myphpmyadmin.$websitename
-     then just enter myphpmyadmin and I'll take care of the rest :), Again, make sure you enter a single word
+     Note: Input a single word below, e.g if you would love to login to your phpmyadmin 
+     through myphpmyadmin.$websitename then just enter myphpmyadmin and
+     I'll take care of the rest :), Again, make sure you enter a single word
      " | boxes -d columns
 
 while :
@@ -1993,9 +1998,10 @@ TMPFILE=`mktemp /tmp/pma.nginx.XXXXXXXX` || exit 1
 
 
 echo "
-     You can login via $pmaurl.$websitename using $pmauser and $pmapass, Save this in a secret place
-     The next you would need to do is to point A record to $pmaurl.$websitename, you can do that using the Manage DNS 
-     in the main menu easily.
+     You can login via $pmaurl.$websitename using $pmauser and $pmapass, 
+     Save this in a secret place
+     The next you would need to do is to point A record to $pmaurl.$websitename, 
+     you can do that using the Manage DNS in the main menu easily.
      " | boxes -d columns
 
 else
@@ -2027,15 +2033,20 @@ spinner
 
 echo "
 
-                A CommandLine Control Panel That Handles The Automation of ClassicPress, WordPress, and also
-                Offers The Ability To Manage Your Own Custom DNS Directly From The Server.
-                That is Not All, You Can Also Install PhpMyAdmin For MariaDB Database, Add Multiple SFTP Users,
-                Automate The Backing Up (deduplicates + You can configure the frequency of the backup) and 
-                Restoration of The Complete sites (or individual components, e.g bind, SSL cert, e.t.c) On The Server, and Many More...
+                A CommandLine Control Panel That Handles The Automation of 
+                ClassicPress, WordPress, and also Offers The Ability To Manage Your 
+                Own Custom DNS Directly From The Server.
+
+                That is Not All, You Can Also Install PhpMyAdmin For MariaDB Database, 
+                Add Multiple SFTP Users, 
+                Automate The Backing Up (deduplicates + You can configure the frequency of the backup)
+                and Restoration of The Complete sites 
+                (or individual components, e.g bind, SSL cert, e.t.c) On The Server, 
+                and Many More...
 
 
-                                                  By the_devsrealm_guy
-                                                  https://devsrealm.com/
+                                       By the_devsrealm_guy
+                                       https://devsrealm.com/
 
 " | boxes -d columns
 
