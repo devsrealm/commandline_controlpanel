@@ -153,7 +153,7 @@ restore_fullsite()
   TMPDIR=`mktemp -d /tmp/restore_sitedir.XXXXXXXXXXXXXXXX` || exit 1
 
   cd $TMPDIR
-  borg extract --list --strip-components $backupsitedir::$sitedirrestorechoice 2>> $scriptdir/restore_log/$date.log >/dev/null &
+  borg extract --list $backupsitedir::$sitedirrestorechoice 2>> $scriptdir/restore_log/$date.log >/dev/null &
 
   restorechecker $?
 
@@ -219,11 +219,11 @@ restore_dns()
   TMPDIR=`mktemp -d /tmp/restore_bind.XXXXXXXXXXXXXXXX` || exit 1
 
   cd $TMPDIR
-  borg extract --list --strip-components $backupbind::$bindrestorechoice 2>> $scriptdir/restore_log/$date.log >/dev/null &
+  borg extract --list $backupbind::$bindrestorechoice 2>> $scriptdir/restore_log/$date.log >/dev/null &
 
   restorechecker $?
 
-  echo -e "\t\t\t\tMoving Certficate Into Appropriate Folder"
+  echo -e "\t\t\t\tMoving Bind Configs Into Appropriate Folder"
   # Copy Recursively Including Hidden Files
   cp -Rf $TMPDIR/etc/. /etc 2>> $scriptdir/restore_log/$date.log &>/dev/null
 
@@ -282,7 +282,7 @@ restore_sftp()
   TMPDIR=`mktemp -d /tmp/restore_sftp.XXXXXXXXXXXXXXXX` || exit 1
 
   cd $TMPDIR
-  borg extract --list --strip-components $backupsftp::$sftprestorechoice 2>> $scriptdir/restore_log/$date.log >/dev/null &
+  borg extract --list $backupsftp::$sftprestorechoice 2>> $scriptdir/restore_log/$date.log >/dev/null &
 
   restorechecker $?
 
