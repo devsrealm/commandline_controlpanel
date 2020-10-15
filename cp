@@ -43,6 +43,11 @@ fi
 #   Check Error at certain place and exit if it not equal to zero
 #
 
+#
+# Include The Main Backup Function
+#
+source mainbackup
+
 errorchecker() {
 
     errorstat=$1
@@ -199,6 +204,20 @@ web_server()
         echo -e "\t\t\t\tNginx Seems To Be Missing\n"
           if yes_no "Install Nginx Web Server"
           then
+          echo -e "\t\t\t\tInstalling Nginx From The Official Nginx Repo"
+          sudo wget https://nginx.org/keys/nginx_signing.key 2>> ${logfile} >/dev/null &
+          sudo apt-key add nginx_signing.key 2>> ${logfile} >/dev/null &
+
+          #   We add the below lines to sources.list to name the repositories 
+          #   from which the NGINX Open Source source can be obtained:
+          #   The lsb_release automatically adds the distro codename
+          echo "deb [arch=amd64] http://nginx.org/packages/mainline/ubuntu `lsb_release -cs` nginx" \
+              | sudo tee -a /etc/apt/sources.list >/dev/null &
+
+          echo "deb-src http://nginx.org/packages/mainline/ubuntu `lsb_release -cs` nginx" \
+              | sudo tee -a /etc/apt/sources.list >/dev/null &
+
+
           sudo apt-get update 2>> ${logfile} >/dev/null &
           sudo apt-get -y install nginx 2>> ${logfile} >/dev/null &
 
@@ -245,6 +264,7 @@ install_certbot()
     errorchecker_certbot $?
     echo
     echo -e "\t\t\t\tDone\n"
+    systemctl restart nginx
 
 }
 
@@ -264,6 +284,8 @@ website_secure()
 
       if yes_no "Do you want to secure another website"
        then
+
+       read -p  $'\t\t\t\t'"The Name of New Website You want to secure: " websitename
         #
         # Call The install_certbot function
         #
@@ -370,8 +392,8 @@ quit()
 website_create() 
 {
     # Check if the nginx site-available and site-enabled is created, if no create it
-    site_available=/etc/nginx/sites-available
-    site_enabled=/etc/nginx/sites-enabled
+    site_available="/etc/nginx/sites-available"
+    site_enabled="/etc/nginx/sites-enabled"
     [ -d $site_available ] || sudo mkdir -p $site_available 
     [ -d $site_enabled ] || sudo mkdir -p $site_enabled
 
@@ -381,6 +403,9 @@ website_create()
     #
     #   Note: The inclusion of /etc/nginx/sites-enabled/*; is no longer need, I'll leave this for reference
     #
+    #   cat ngx_conf_with_caching | sed '/conf.d/a  \\tinclude /etc/nginx/sites-enabled/*;' | awk '! (/sites-enabled/ && seen[$0]++)' > $TMPFILE
+    #
+    #
     #   This adds the include /etc/nginx/sites-enabled/*; in the nginx config file if it isn't alread there
     #   We also removed any duplicate of /etc/nginx/sites-enabled/*
     #
@@ -388,11 +413,12 @@ website_create()
     #    \t is one tab \\t is two tab, if you want three tab, you do \\t\t, yh, sed is crazy
     #
 
-    TMPFILE=`mktemp /tmp/nginx.conf.XXXXXXXXXX` || exit 1
-    cat ngx_conf_with_caching | sed '/conf.d/a  \\tinclude /etc/nginx/sites-enabled/*;' | awk '!(/sites-enabled/ && seen[$0]++)' > $TMPFILE
-    sudo cp -f $TMPFILE /etc/nginx/nginx.conf # move the temp to nginx.conf
-    # remove the tempfile
-    rm "$TMPFILE"
+     TMPFILE=`mktemp /tmp/nginx.conf.XXXXXXXXXX` || exit 1
+     cat ngx_conf_with_caching > $TMPFILE
+     sudo cp -f $TMPFILE /etc/nginx/nginx.conf # move the temp to nginx.conf
+     # remove the tempfile
+     rm "$TMPFILE"
+
     #
     # Get Server IP address that is used to reach the internet
     # We ge the source Ip, we then use sed to match the string source /src/ 
@@ -431,7 +457,7 @@ website_create()
     #
 
     if [ ! -d /var/www/$websitename ];then
-    sudo mkdir /var/www/$websitename
+    sudo mkdir -p /var/www/$websitename
     fi
 
     #   
@@ -459,6 +485,7 @@ website_create()
     fi
 
     # reload nginx
+    sudo systemctl start nginx 2>> ${logfile} >/dev/null &
     sudo systemctl enable nginx  2>> ${logfile} >/dev/null &
     sudo systemctl reload nginx 2>> ${logfile} >/dev/null &
 
@@ -498,8 +525,10 @@ mysql_secure_installation() {
         #
 
         if [ $mysqlpass != $mysqlpass2 ]; then
+            echo
             echo -e "\t\t\t\tPasswords do not match, Please Try again"
         else
+            echo
             echo -e "\t\t\t\tPasswords Matches, Moving On..." 
             echo
             break
@@ -782,6 +811,8 @@ MYSQL_SCRIPT
 
                 progress_bar
                 # reload nginx
+                sudo systemctl start nginx 2>> ${logfile} >/dev/null &
+                sudo systemctl enable nginx 2>> ${logfile} >/dev/null &
                 sudo systemctl reload nginx 2>> ${logfile} >/dev/null &
                 echo  "
                 ClassicPress Installation Has Been Completed Successfully
@@ -891,9 +922,10 @@ MYSQL_SCRIPT
 
                 sed -i "s/password_here/$CpDBPass/" /var/www/$websitename/wp-config.php
 
-                # reload nginx
+                sudo systemctl start nginx 2>> ${logfile} >/dev/null &
+                sudo systemctl enable nginx 2>> ${logfile} >/dev/null &
                 sudo systemctl reload nginx 2>> ${logfile} >/dev/null &
-
+                
                 progress_bar
                 echo  "
                 Wordpress Installation has been completed successfully
@@ -1266,8 +1298,10 @@ if [ $? -eq 0 ]; then
               #
 
               if [ $pass1 != $pass2 ]; then
+                  echo
                   echo -e "\t\t\t\tPasswords do not match, Please Try again"
               else
+                  echo
                   echo -e "\t\t\t\tPasswords Matches, Moving On..." 
                   break
               fi
@@ -1309,8 +1343,10 @@ else
         #
 
         if [ $pass1 != $pass2 ]; then
+            echo
             echo -e "\t\t\t\tPasswords do not match, Please Try again"
         else
+            echo
             echo -e "\t\t\t\tPasswords Matches, Moving On..." 
             break
         fi
@@ -1991,13 +2027,15 @@ spinner
 
 echo "
 
-                Program For Automating The Installation of
-                ClassicPress or Wordpress Using Nginx, Php
-                                & Mariadb
+                A CommandLine Control Panel That Handles The Automation of ClassicPress, WordPress, and also
+                Offers The Ability To Manage Your Own Custom DNS Directly From The Server.
+                That is Not All, You Can Also Install PhpMyAdmin For MariaDB Database, Add Multiple SFTP Users,
+                Automate The Backing Up (deduplicates + You can configure the frequency of the backup) and 
+                Restoration of The Complete sites (or individual components, e.g bind, SSL cert, e.t.c) On The Server, and Many More...
 
 
-                        By the_devsrealm_guy
-                        https://devsrealm.com/
+                                                  By the_devsrealm_guy
+                                                  https://devsrealm.com/
 
 " | boxes -d columns
 
@@ -2014,9 +2052,9 @@ websitename=$1
 #
 #   Check if the filename represents a valid file.
 #
-if [[ ! -f  $site_available/$websitename ]]
+if [ ! -e  $site_available/$websitename ]
 then
-    echo -e $1 "\t\t\t\tdoes not exist"
+    echo -e "\t\t\t\t$1 does not exist"
 
     #
     #   Ask if it should be created
@@ -2063,7 +2101,7 @@ clear
     #  
     echo "
 
-                           Classicpress/WordPress Installation
+                           CommandLine ControlPanel Installation
                                       Main Menu
 
                     What do you wish to do?
@@ -2072,7 +2110,8 @@ clear
                     3.) Create an SFTP User
                     4.) Manage DNS
                     5.) Install PHPMyAdmin
-                    6.) Exit
+                    6.) Automate Backup and or Restore
+                    7.) Exit
 
     " | boxes -d columns
     #
@@ -2103,11 +2142,13 @@ clear
         ;;
         5)     phpmyadmin
         ;;
-        5)     quit 0
+        6)     backup
+        ;;
+        7)     quit 0
         ;;
         q*|Q*) quit 0
         ;;
-        *)     echo -e "\t\t\t\tplease enter a number between 1 and 3";;
+        *)     echo -e "\t\t\t\tplease enter a number between 1 and 7";;
     esac
     #
     #   Pause to give the user a chance to see what's on the screen, this way, we won't lose some infos
