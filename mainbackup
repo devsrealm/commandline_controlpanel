@@ -33,9 +33,12 @@ backup()
     fi # End Checking if the borgbackup package is installed
 
     echo "
-         Note: Make sure you already have rclone configured as root if you want to push your data to a cloud storage
-         This is totally optional as you can also leave your data on the server storage disk if you prefer.
-         Read on how to configure rclone here: https://devsrealm.com/cloud-computing/ubuntu/synchronize-file-with-cloud-storage-using-rclone-in-linux/
+         Note: Make sure you already have rclone configured as root if you want to push 
+         your data to a cloud storage.
+         This is totally optional as you can also leave your data on the server 
+         storage disk if you prefer.
+         Read on how to configure rclone here:
+         https://devsrealm.com/cloud-computing/ubuntu/synchronize-file-with-cloud-storage-using-rclone-in-linux/
          " | boxes -d columns
 
 
