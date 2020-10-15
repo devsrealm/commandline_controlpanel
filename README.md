@@ -21,6 +21,7 @@ As of the time of writing this, it took only 1min.34s (proof in the tutorial lin
 - Automate The Backup of the Complete Sites On The Server (De-duplication)
 - Edit Backup Retention (How Many Backups Do You Want To Keep In a Day, Week and Month )
 - You can Restore The Full Sites or Only DNS (If You Have One Created), Only SFTP Users, Only SSL Cert, etc.
+- Ability To Push The Backup To a Cloud Storage (Thanks To Rclone)
 - More Features in The Works
 
 ►Key Requirements
