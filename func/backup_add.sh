@@ -12,7 +12,7 @@ backupchecker() {
 
     backupstat=$1
 
-    if [[ $restorestat != 0 ]];then
+    if [[ $backupstat != 0 ]];then
     echo "Backup Error, Check backup_log/$date.log"
     exit 1
     fi
