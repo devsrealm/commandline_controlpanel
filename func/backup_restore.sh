@@ -116,7 +116,7 @@ restore_fullsite()
 
   backupsitedir=/backup/borg/sitedir
 
-  date=`date +"%Y-%m-%d"`
+  date=$(date +"%Y-%m-%d")
 
   if [[ ! -d "$backupsitedir" ]]; then
       echo -e "\t\t\t\tYou can't restore Sites! You either don't have site directories or you don't have any backed up"
@@ -146,30 +146,59 @@ restore_fullsite()
   # I'll need to get the full path of the script directory cos I am about to CD for the restore operation
   #
 
-  scriptpath=`realpath $0` # This get the script path + the name, e.g /path/to/script/scriptname.sh
-  scriptdir=`dirname $scriptpath` # This get the script directory e.g /path/to/script which is what I need
+  scriptpath=$(realpath "$0") # This get the script path + the name, e.g /path/to/script/scriptname.sh
+  scriptdir=$(dirname "$scriptpath") # This get the script directory e.g /path/to/script which is what I need
 
   echo -e "\t\t\t\tCreating a Temp Directory To Extract The File Into"
-  TMPDIR=`mktemp -d /tmp/restore_sitedir.XXXXXXXXXXXXXXXX` || exit 1
+  TMPDIR=$(mktemp -d /tmp/restore_sitedir.XXXXXXXXXXXXXXXX) || exit 1
 
-  cd $TMPDIR
-  borg extract --list $backupsitedir::$sitedirrestorechoice 2>> $scriptdir/restore_log/$date.log >/dev/null &
+  #
+  #   In case cd fails, e.g misspelled paths, missing permissions, no directory, we exit
+  #   This way, the script will not keep going on and doing all its operations in the wrong directory.
+  #
 
-  restorechecker $?
+  cd "$TMPDIR" || { echo -e "\t\t\t\tCouldn't Change into Temp Directory...Exiting"; return 1; }
+
+  borg extract --list $backupsitedir::"$sitedirrestorechoice" 2>> "$scriptdir"/restore_log/"$date".log &
+
+  # This waits for a the above background job to complete.
+  # $! represents process id of the most recent background job.
+  # So, we are basically using the $! to store the process id, and we use wait to wait for the job to complete
+  wait $!
+
+  restorechecker $? # We then use this to check the exit status of the completed program we waited for above
 
   echo -e "\t\t\t\tMoving Certficate Into Appropriate Folder"
   # Copy Recursively Including Hidden Files
-  cp -Rf $TMPDIR/var/www/. /var/www 2>> $scriptdir/restore_log/$date.log &>/dev/null
-  cp -Rf $TMPDIR/etc/. /etc 2>> $scriptdir/restore_log/$date.log &>/dev/null
+  cp -Rf "$TMPDIR"/var/www/. /var/www 2>> "$scriptdir"/restore_log/"$date".log &
 
-  restorechecker $?
+  # This waits for a the above background job to complete.
+  # $! represents process id of the most recent background job.
+  # So, we are basically using the $! to store the process id, and we use wait to wait for the job to complete
+  wait $!
+
+  restorechecker $? # We then use this to check the exit status of the completed program we waited for above
+
+  cp -Rf "$TMPDIR"/etc/. /etc 2>> "$scriptdir"/restore_log/"$date".log &
+
+  # This waits for a the above background job to complete.
+  # $! represents process id of the most recent background job.
+  # So, we are basically using the $! to store the process id, and we use wait to wait for the job to complete
+  wait $!
+
+  restorechecker $? # We then use this to check the exit status of the completed program we waited for above
 
   echo -e "\t\t\t\tDone Restoring"
   echo -e "\t\t\t\tRemoving Temp Directory"
 
-  rm -r $TMPDIR
+  rm -r "$TMPDIR"
 
-  cd $scriptdir
+  #
+  #   In case cd fails, e.g misspelled paths, missing permissions, no directory, we exit
+  #   This way, the script will not keep going on and doing all its operations in the wrong directory.
+  #
+
+  cd "$scriptdir" || { echo -e "\t\t\t\tCouldn't Change into Directory...Exiting"; return 1; }
 
   return 0
               
@@ -184,7 +213,7 @@ restore_dns()
 {
   backupbind=/backup/borg/bind
 
-  date=`date +"%Y-%m-%d"`
+  date=$(date +"%Y-%m-%d")
 
   if [[ ! -d "$backupbind" ]]; then
       echo -e "\t\t\t\tYou can't restore DNS Configurations! This is fine if this server isn't managing your DNS"
@@ -212,29 +241,44 @@ restore_dns()
   # I'll need to get the full path of the script directory cos I am about to CD for the restore operation
   #
 
-  scriptpath=`realpath $0` # This get the script path + the name, e.g /path/to/script/scriptname.sh
-  scriptdir=`dirname $scriptpath` # This get the script directory e.g /path/to/script which is what I need
+  scriptpath=$(realpath "$0") # This get the script path + the name, e.g /path/to/script/scriptname.sh
+  scriptdir=$(dirname "$scriptpath") # This get the script directory e.g /path/to/script which is what I need
 
   echo -e "\t\t\t\tCreating a Temp Directory To Extract The File Into"
-  TMPDIR=`mktemp -d /tmp/restore_bind.XXXXXXXXXXXXXXXX` || exit 1
+  TMPDIR=$(mktemp -d /tmp/restore_bind.XXXXXXXXXXXXXXXX) || exit 1
 
-  cd $TMPDIR
-  borg extract --list $backupbind::$bindrestorechoice 2>> $scriptdir/restore_log/$date.log >/dev/null &
+  cd "$TMPDIR" || { echo -e "\t\t\t\tCouldn't Change into Directory...Exiting"; return 1; }
+  borg extract --list $backupbind::"$bindrestorechoice" 2>> "$scriptdir"/restore_log/"$date".log &
 
-  restorechecker $?
+  # This waits for a the above background job to complete.
+  # $! represents process id of the most recent background job.
+  # So, we are basically using the $! to store the process id, and we use wait to wait for the job to complete
+  wait $!
+
+  restorechecker $? # We then use this to check the exit status of the completed program we waited for above
 
   echo -e "\t\t\t\tMoving Bind Configs Into Appropriate Folder"
   # Copy Recursively Including Hidden Files
-  cp -Rf $TMPDIR/etc/. /etc 2>> $scriptdir/restore_log/$date.log &>/dev/null
+  cp -Rf "$TMPDIR"/etc/. /etc 2>> "$scriptdir"/restore_log/"$date".log &
 
-  restorechecker $?
+  # This waits for a the above background job to complete.
+  # $! represents process id of the most recent background job.
+  # So, we are basically using the $! to store the process id, and we use wait to wait for the job to complete
+  wait $!
+
+  restorechecker $? # We then use this to check the exit status of the completed program we waited for above
 
   echo -e "\t\t\t\tDone Restoring"
   echo -e "\t\t\t\tRemoving Temp Directory"
 
-  rm -r $TMPDIR
+  rm -r "$TMPDIR"
 
-  cd $scriptdir
+  #
+  #   In case cd fails, e.g misspelled paths, missing permissions, no directory, we exit
+  #   This way, the script will not keep going on and doing all its operations in the wrong directory.
+  #
+
+  cd "$scriptdir" || { echo -e "\t\t\t\tCouldn't Change into Directory...Exiting"; return 1; }
               
   fi
 }
@@ -247,7 +291,7 @@ restore_sftp()
 {
   backupsftp=/backup/borg/sftp
 
-  date=`date +"%Y-%m-%d"`
+  date=$(date +"%Y-%m-%d")
 
   if [[ ! -d "$backupsftp" ]]; then
       echo -e "\t\t\t\tYou can't restore SFTP Users! You either don't have SFTP Accounts or you don't have any backed up"
@@ -275,30 +319,53 @@ restore_sftp()
   # I'll need to get the full path of the script directory cos I am about to CD for the restore operation
   #
 
-  scriptpath=`realpath $0` # This get the script path + the name, e.g /path/to/script/scriptname.sh
-  scriptdir=`dirname $scriptpath` # This get the script directory e.g /path/to/script which is what I need
+  scriptpath=$(realpath "$0") # This get the script path + the name, e.g /path/to/script/scriptname.sh
+  scriptdir=$(dirname "$scriptpath") # This get the script directory e.g /path/to/script which is what I need
 
   echo -e "\t\t\t\tCreating a Temp Directory To Extract The File Into"
-  TMPDIR=`mktemp -d /tmp/restore_sftp.XXXXXXXXXXXXXXXX` || exit 1
+  TMPDIR=$(mktemp -d /tmp/restore_sftp.XXXXXXXXXXXXXXXX) || exit 1
 
-  cd $TMPDIR
-  borg extract --list $backupsftp::$sftprestorechoice 2>> $scriptdir/restore_log/$date.log >/dev/null &
+  cd "$TMPDIR" || { echo -e "\t\t\t\tCouldn't Change into Directory...Exiting"; return 1; }
+  borg extract --list $backupsftp::"$sftprestorechoice" 2>> "$scriptdir"/restore_log/"$date".log &
 
-  restorechecker $?
+  # This waits for a the above background job to complete.
+  # $! represents process id of the most recent background job.
+  # So, we are basically using the $! to store the process id, and we use wait to wait for the job to complete
+  wait $!
+
+  restorechecker $? # We then use this to check the exit status of the completed program we waited for above
 
   echo -e "\t\t\t\tMoving Certficate Into Appropriate Folder"
   # Copy Recursively Including Hidden Files
-  cp -Rf $TMPDIR/sftpusers/jailed/. /sftpusers/jailed 2>> $scriptdir/restore_log/$date.log &>/dev/null
-  cp -Rf $TMPDIR/etc/. /etc 2>> $scriptdir/restore_log/$date.log &>/dev/null
+  cp -Rf "$TMPDIR"/sftpusers/jailed/. /sftpusers/jailed 2>> "$scriptdir"/restore_log/"$date".log &
 
-  restorechecker $?
+  # This waits for a the above background job to complete.
+  # $! represents process id of the most recent background job.
+  # So, we are basically using the $! to store the process id, and we use wait to wait for the job to complete
+  wait $!
+
+  restorechecker $? # We then use this to check the exit status of the completed program we waited for above
+
+  cp -Rf "$TMPDIR"/etc/. /etc 2>> "$scriptdir"/restore_log/"$date".log &
+
+  # This waits for a the above background job to complete.
+  # $! represents process id of the most recent background job.
+  # So, we are basically using the $! to store the process id, and we use wait to wait for the job to complete
+  wait $!
+
+  restorechecker $? # We then use this to check the exit status of the completed program we waited for above
 
   echo -e "\t\t\t\tDone Restoring"
   echo -e "\t\t\t\tRemoving Temp Directory"
 
-  rm -r $TMPDIR
+  rm -r "$TMPDIR"
 
-  cd $scriptdir
+  #
+  #   In case cd fails, e.g misspelled paths, missing permissions, no directory, we exit
+  #   This way, the script will not keep going on and doing all its operations in the wrong directory.
+  #
+
+  cd "$scriptdir" || { echo -e "\t\t\t\tCouldn't Change into Directory...Exiting"; return 1; }
               
   fi
 }
@@ -311,7 +378,7 @@ restore_certificate()
 {
   backupletsencrypt=/backup/borg/letsencrypt
 
-  date=`date +"%Y-%m-%d"`
+  date=$(date +"%Y-%m-%d")
 
   if [[ ! -d "$backupletsencrypt" ]]; then
       echo -e "\t\t\t\tYou can't restore any certificate! You either don't have certificates or you don't have any backed up"
@@ -339,29 +406,50 @@ restore_certificate()
   # I'll need to get the full path of the script directory cos I am about to CD for the restore operation
   #
 
-  scriptpath=`realpath $0` # This get the script path + the name, e.g /path/to/script/scriptname.sh
-  scriptdir=`dirname $scriptpath` # This get the script directory e.g /path/to/script which is what I need
+  scriptpath=$(realpath "$0") # This get the script path + the name, e.g /path/to/script/scriptname.sh
+  scriptdir=$(dirname "$scriptpath") # This get the script directory e.g /path/to/script which is what I need
 
   echo -e "\t\t\t\tCreating a Temp Directory To Extract The File Into"
-  TMPDIR=`mktemp -d /tmp/restore_letsencrypt.XXXXXXXXXXXXXXXX` || exit 1
+  TMPDIR=$(mktemp -d /tmp/restore_letsencrypt.XXXXXXXXXXXXXXXX) || exit 1
 
-  cd $TMPDIR
-  borg extract --list --strip-components 1 $backupletsencrypt::$letsencryptrestorechoice etc 2>> $scriptdir/restore_log/$date.log >/dev/null &
+  #
+  #   In case cd fails, e.g misspelled paths, missing permissions, no directory, we exit
+  #   This way, the script will not keep going on and doing all its operations in the wrong directory.
+  #
 
-  restorechecker $?
+  cd "$TMPDIR" || { echo -e "\t\t\t\tCouldn't Change into Directory...Exiting"; return 1; }
+
+  borg extract --list --strip-components 1 $backupletsencrypt::"$letsencryptrestorechoice" etc 2>> "$scriptdir"/restore_log/"$date".log &
+
+  # This waits for a the above background job to complete.
+  # $! represents process id of the most recent background job.
+  # So, we are basically using the $! to store the process id, and we use wait to wait for the job to complete
+  wait $!
+
+  restorechecker $? # We then use this to check the exit status of the completed program we waited for above
 
   echo -e "\t\t\t\tMoving Certficate Into Appropriate Folder"
   # Copy Recursively Including Hidden Files
-  cp -Rf $TMPDIR/letsencrypt/. /etc/letsencrypt 2>> $scriptdir/restore_log/$date.log &>/dev/null
+  cp -Rf "$TMPDIR"/letsencrypt/. /etc/letsencrypt 2>> "$scriptdir"/restore_log/"$date".log &
 
-  restorechecker $?
+  # This waits for a the above background job to complete.
+  # $! represents process id of the most recent background job.
+  # So, we are basically using the $! to store the process id, and we use wait to wait for the job to complete
+  wait $!
+
+  restorechecker $? # We then use this to check the exit status of the completed program we waited for above
 
   echo -e "\t\t\t\tDone Restoring"
   echo -e "\t\t\t\tRemoving Temp Directory"
 
-  rm -r $TMPDIR
+  rm -r "$TMPDIR"
 
-  cd $scriptdir
+  #
+  #   In case cd fails, e.g misspelled paths, missing permissions, no directory, we exit
+  #   This way, the script will not keep going on and doing all its operations in the wrong directory.
+  #
+
+  cd "$scriptdir" || { echo -e "\t\t\t\tCouldn't Change into Directory...Exiting"; return 1; }
               
   fi
 }
@@ -374,7 +462,7 @@ restore_db()
 {
   backupdatabase=/backup/borg/database
 
-  date=`date +"%Y-%m-%d"`
+  date=$(date +"%Y-%m-%d")
 
   if [[ ! -d "$backupdatabase" ]]; then
       echo -e "\t\t\t\tYou can't restore Databases! You either don't have database or you don't have any backed up"
@@ -402,22 +490,33 @@ restore_db()
   # I'll need to get the full path of the script directory cos I am about to CD for the restore operation
   #
 
-  scriptpath=`realpath $0` # This get the script path + the name, e.g /path/to/script/scriptname.sh
-  scriptdir=`dirname $scriptpath` # This get the script directory e.g /path/to/script which is what I need
+  scriptpath=$(realpath "$0") # This get the script path + the name, e.g /path/to/script/scriptname.sh
+  scriptdir=$(dirname "$scriptpath") # This get the script directory e.g /path/to/script which is what I need
 
   echo -e "\t\t\t\tCreating a Temp Directory To Extract The File Into"
-  TMPDIR=`mktemp -d /tmp/restore_database.XXXXXXXXXXXXXXXX` || exit 1
+  TMPDIR=$(mktemp -d /tmp/restore_database.XXXXXXXXXXXXXXXX) || exit 1
 
-  cd $TMPDIR
-  borg extract --list $backupdatabase::$databaserestorechoice 2>> $scriptdir/restore_log/$date.log >/dev/null &
+  #
+  #   In case cd fails, e.g misspelled paths, missing permissions, no directory, we exit
+  #   This way, the script will not keep going on and doing all its operations in the wrong directory.
+  #
 
-  restorechecker $?
+  cd "$TMPDIR" || { echo -e "\t\t\t\tCouldn't Change into Directory...Exiting"; return 1; }
+  
+  borg extract --list $backupdatabase::"$databaserestorechoice" 2>> "$scriptdir"/restore_log/"$date".log &
+
+  # This waits for a the above background job to complete.
+  # $! represents process id of the most recent background job.
+  # So, we are basically using the $! to store the process id, and we use wait to wait for the job to complete
+  wait $!
+
+  restorechecker $? # We then use this to check the exit status of the completed program we waited for aboverestorechecker $?
 
   echo -e "\t\t\t\tStoping Mariadb Service"
   sudo systemctl stop mariadb
   echo
   echo -e "\t\t\t\tImporting Database"
-  sudo mysql --user root < $TMPDIR/dbs.sql
+  sudo mysql --user root < "$TMPDIR"/dbs.sql
 
   restorechecker $?
 
@@ -427,9 +526,14 @@ restore_db()
   echo -e "\t\t\t\tDone Restoring DB"
   echo -e "\t\t\t\tRemoving Temp Directory"
 
-  rm -r $TMPDIR
+  rm -r "$TMPDIR"
 
-  cd $scriptdir
+  #
+  #   In case cd fails, e.g misspelled paths, missing permissions, no directory, we exit
+  #   This way, the script will not keep going on and doing all its operations in the wrong directory.
+  #
+
+  cd "$scriptdir" || { echo -e "\t\t\t\tCouldn't Change into Directory...Exiting"; return 1; }
               
   fi
 }

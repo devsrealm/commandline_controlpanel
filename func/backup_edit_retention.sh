@@ -1,5 +1,5 @@
-scriptpath=`realpath $0` # This get the script path + the name, e.g /path/to/script/scriptname.sh
-scriptdir=`dirname $scriptpath` # This get the script directory e.g /path/to/script which is what I need
+scriptpath=$(realpath $0) # This get the script path + the name, e.g /path/to/script/scriptname.sh
+scriptdir=$(dirname $scriptpath) # This get the script directory e.g /path/to/script which is what I need
 
 source $scriptdir/backup.conf
 
