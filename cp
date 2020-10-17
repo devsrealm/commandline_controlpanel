@@ -580,7 +580,7 @@ install_mariadb_php()
   # Let's Install PHP and Mariadb
   #
   
-if command -v mariadb 2>> "${logfile}" && command -v php 2>> "${logfile}"
+if command -v mariadb 2>> "${logfile}" >/dev/null && command -v php 2>> "${logfile}" >/dev/null
     then
       echo
       echo -e "\t\t\t\tMariadb and PHP is available\n"
@@ -2068,7 +2068,7 @@ echo
 
 logfile=errorlog.txt
 
-sudo apt-get -y install boxes 2>> ${logfile} &
+sudo apt-get -y install boxes 2>> ${logfile} >/dev/null &
 spinner
 
 echo "
