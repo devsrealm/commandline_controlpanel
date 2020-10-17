@@ -19,7 +19,7 @@ backup()
     #   and authenticated encryption.
     #
 
-    if command -v borgbackup 2>> ${logfile} &>/dev/null # Checking if the borgbackup package is installed
+    if command -v borgbackup 2>> ${logfile} >/dev/null # Checking if the borgbackup package is installed
     then
         echo
         echo -e "\t\t\t\tborgbackup dependency Okay...."
