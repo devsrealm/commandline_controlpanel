@@ -21,8 +21,8 @@ backup_add() {
   #   Time For Backing Up
   # 
 
-  date=`date +"%Y-%m-%d"`
-  now=`date +"%c"`
+  date=$(date +"%Y-%m-%d")
+  now=$(date +"%c")
 
   echo -e "\t\t\t\tGetting Started..."
 
@@ -31,8 +31,8 @@ backup_add() {
   # Store PAM Accounts For Use In Bind or SFTP Backup
   pamaccounts="/etc/passwd /etc/shadow /etc/group"
 
-  echo "Initiating - $now" | tee -a backup_log/$date.log #stdout -> log & stdout
-  echo "Progressing - $now" | tee -a backup_log/$date.log
+  echo "Initiating - $now" | tee -a backup_log/"$date".log #stdout -> log & stdout
+  echo "Progressing - $now" | tee -a backup_log/"$date".log
 
   #
   #   This command initializes an empty repository.
@@ -52,7 +52,7 @@ backup_add() {
 
   echo -e "\t\t\t\tBacking up DNS Data if you have that created..."
 
-  if command -v named 2>> backup_log/$date.log &>/dev/null
+  if command -v named 2>> backup_log/"$date".log >/dev/null
   then
       echo
 
@@ -71,7 +71,7 @@ backup_add() {
 
           bind=/etc/bind # If there is bind directory, we store it for compression later
 
-           echo -e "\t\t\t\tBacking Up Bind Data - $now" | tee -a backup_log/$date.log
+           echo -e "\t\t\t\tBacking Up Bind Data - $now" | tee -a backup_log/"$date".log
 
           borg create                       \
             --verbose                       \
@@ -81,7 +81,7 @@ backup_add() {
             --show-rc                       \
             --compression lz4               \
                                             \
-            $backupbind::$date "$bind" $pamaccounts 2>> backup_log/$date.log >/dev/null &
+            $backupbind::"$date" "$bind" $pamaccounts 2>> backup_log/"$date".log >/dev/null &
 
             #
             #  Prune options decide what particular archives from your Borg backup get deleted over time
@@ -95,8 +95,8 @@ backup_add() {
             #  So, day 8 would be the new day 1, this is what it means by keep-daily for 7 days
             #
 
-          echo "\t\t\t\tPruning Bind data - $now" | tee -a backup_log/$date.log
-          borg prune -v --list --keep-daily=$dailybackup --keep-weekly=$weeklybackup --keep-monthly=$monthlybackup $backupbind 2>> backup_log/$date.log >/dev/null &
+          echo -e "\t\t\t\tPruning Bind data - $now" | tee -a backup_log/"$date".log
+          borg prune -v --list --keep-daily="$dailybackup" --keep-weekly="$weeklybackup" --keep-monthly="$monthlybackup" $backupbind 2>> backup_log/"$date".log >/dev/null &
 
 
           
@@ -110,19 +110,19 @@ backup_add() {
   #
   #   Checking mariadb Availability
   #
-  if command -v mariadb 2>> backup_log/$date.log &>/dev/null
+  if command -v mariadb 2>> backup_log/"$date".log >/dev/null
   then
       echo
       echo -e "\t\t\t\tChecking mariadb Availability...."
       echo -e "\t\t\t\mariadb okay...."
-      echo -e "\t\t\t\tBacking Up All mariadb database - $now" | tee -a backup_log/$date.log
+      echo -e "\t\t\t\tBacking Up All mariadb database - $now" | tee -a backup_log/"$date".log
 
 
-      sudo mysqldump --user=root --password=$mysqlpass --lock-tables --all-databases > dbs.sql
+      sudo mysqldump --user=root --password="$mysqlpass" --lock-tables --all-databases > dbs.sql
         # Resetting Database Backup Directory If it is empty, this only happens once
         if [[ "$backupdatabase" = "" ]]; then
           backupdatabase=/backup/borg/database
-          echo -e "\t\t\t\tResetting Database Backup Directory - $now" | tee -a backup_log/$date.log
+          echo -e "\t\t\t\tResetting Database Backup Directory - $now" | tee -a backup_log/"$date".log
         fi
 
 
@@ -134,10 +134,10 @@ backup_add() {
         --show-rc                       \
         --compression lz4               \
                                         \
-        $backupdatabase::$date dbs.sql  2>> backup_log/$date.log >/dev/null &
+        $backupdatabase::"$date" dbs.sql  2>> backup_log/"$date".log >/dev/null &
 
-          echo "\t\t\t\tPruning Full database data - $now" | tee -a backup_log/$date.log
-          borg prune -v --list --keep-daily=$dailybackup --keep-weekly=$weeklybackup --keep-monthly=$monthlybackup $backupdatabase 2>> backup_log/$date.log >/dev/null &
+          echo "\t\t\t\tPruning Full database data - $now" | tee -a backup_log/"$date".log
+          borg prune -v --list --keep-daily="$dailybackup" --keep-weekly="$weeklybackup" --keep-monthly="$monthlybackup" $backupdatabase 2>> backup_log/"$date".log >/dev/null &
 
         rm dbs.sql
 
@@ -165,10 +165,10 @@ backup_add() {
         # Resetting SFTP Backup Directory If it is empty, this only happens once
         if [[ "$backupsftp" = "" ]]; then
           backupsftp=/backup/borg/sftp
-          echo -e "\t\t\t\tResetting SFTP Backup Directory - $now" | tee -a backup_log/$date.log
+          echo -e "\t\t\t\tResetting SFTP Backup Directory - $now" | tee -a backup_log/"$date".log
         fi
 
-      echo -e "\t\t\t\tBacking Up All SFTP Users - $now" | tee -a backup_log/$date.log
+      echo -e "\t\t\t\tBacking Up All SFTP Users - $now" | tee -a backup_log/"$date".log
 
         borg create                       \
           --verbose                       \
@@ -178,11 +178,11 @@ backup_add() {
           --show-rc                       \
           --compression lz4               \
                                           \
-          $backupsftp::$date "$sftp" $pamaccounts 2>> backup_log/$date.log >/dev/null &
+          $backupsftp::"$date" "$sftp" $pamaccounts 2>> backup_log/"$date".log >/dev/null &
 
 
-          echo "\t\t\t\tPruning SFTP Users Data - $now" | tee -a backup_log/$date.log
-          borg prune -v --list --keep-daily=$dailybackup --keep-weekly=$weeklybackup --keep-monthly=$monthlybackup $backupsftp 2>> backup_log/$date.log >/dev/null &
+          echo "\t\t\t\tPruning SFTP Users Data - $now" | tee -a backup_log/"$date".log
+          borg prune -v --list --keep-daily="$dailybackup" --keep-weekly="$weeklybackup" --keep-monthly="$monthlybackup" $backupsftp 2>> backup_log/"$date".log >/dev/null &
           
   fi # END [ ! -d /sftpusers/jailed ];
 
@@ -203,7 +203,7 @@ backup_add() {
         # Resetting Certificate Backup Directory If it is empty, this only happens once
         if [[ "$backupletsencrypt" = "" ]]; then
           backupletsencrypt=/backup/borg/letsencrypt
-          echo -e "\t\t\t\tResetting Certificate Backup Directory - $now" | tee -a backup_log/$date.log
+          echo -e "\t\t\t\tResetting Certificate Backup Directory - $now" | tee -a backup_log/"$date".log
         fi
 
      borg create                       \
@@ -214,10 +214,10 @@ backup_add() {
         --show-rc                       \
         --compression lz4               \
                                         \
-        $backupletsencrypt::$date "$letsencrypt"  2>> backup_log/$date.log >/dev/null &
+        $backupletsencrypt::"$date" "$letsencrypt"  2>> backup_log/"$date".log >/dev/null &
 
-         echo "\t\t\t\tPruning Letsencrypt Cert Data - $now" | tee -a backup_log/$date.log
-         borg prune -v --list --keep-daily=$dailybackup --keep-weekly=$weeklybackup --keep-monthly=$monthlybackup $backupletsencrypt 2>> backup_log/$date.log >/dev/null &
+         echo "\t\t\t\tPruning Letsencrypt Cert Data - $now" | tee -a backup_log/"$date".log
+         borg prune -v --list --keep-daily="$dailybackup" --keep-weekly="$weeklybackup" --keep-monthly="$monthlybackup" $backupletsencrypt 2>> backup_log/"$date".log >/dev/null &
           
   fi # END [ ! -d /etc/letsencrypt ]
 
@@ -228,7 +228,7 @@ backup_add() {
 
   echo -e "\t\t\t\tChecking Nginx Config and Vhost..."
 
-  if command -v nginx 2>> backup_log/$date.log &>/dev/null
+  if command -v nginx 2>> backup_log/"$date".log >/dev/null
   then
       echo
       echo -e "\t\t\t\tNginx okay...."
@@ -241,13 +241,13 @@ backup_add() {
         # Resetting Site Backup Directory If it is empty, this only happens once
         if [[ "$backupsitedir" = "" ]]; then
           backupsitedir=/backup/borg/sitedir
-          echo -e "\t\t\t\tResetting Site Backup Directory - $now" | tee -a backup_log/$date.log
+          echo -e "\t\t\t\tResetting Site Backup Directory - $now" | tee -a backup_log/"$date".log
         fi
 
         nginxconfig=/etc/nginx  # If there is an nginx directory, we store it for compression later
         vhosts=/var/www         # If there is a /var/www directory, we store it for compression later
 
-        echo -e "\t\t\t\tBacking Up Nginx Config and All Sites Vhosts Data - $now" | tee -a backup_log/$date.log
+        echo -e "\t\t\t\tBacking Up Nginx Config and All Sites Vhosts Data - $now" | tee -a backup_log/"$date".log
 
         borg create                       \
           --verbose                       \
@@ -257,10 +257,10 @@ backup_add() {
           --show-rc                       \
           --compression lz4               \
                                           \
-          $backupsitedir::$date "$vhosts" "$nginxconfig"  2>> backup_log/$date.log >/dev/null &
+          $backupsitedir::"$date" "$vhosts" "$nginxconfig"  2>> backup_log/"$date".log >/dev/null &
 
-          echo "\t\t\t\tPruning Nginx and vhost data - $now" | tee -a backup_log/$date.log
-          borg prune -v --list --keep-daily=$dailybackup --keep-weekly=$weeklybackup --keep-monthly=$monthlybackup $backupsitedir 2>> backup_log/$date.log >/dev/null &
+          echo "\t\t\t\tPruning Nginx and vhost data - $now" | tee -a backup_log/"$date".log
+          borg prune -v --list --keep-daily="$dailybackup" --keep-weekly="$weeklybackup" --keep-monthly="$monthlybackup" $backupsitedir 2>> backup_log/"$date".log >/dev/null &
 
       fi # END [[ ! -d /etc/nginx && ! -d /var/www ]]
 
@@ -305,7 +305,7 @@ else
 
     FROM=/backup/borg
     start=$(date +'%s')
-    echo "$(date "+%Y-%m-%d %T") RCLONE Sync Started" | tee -a backup_log/$date.log
+    echo "$(date "+%Y-%m-%d %T") RCLONE Sync Started" | tee -a backup_log/"$date".log
     #
     #   --transfers means the number of file transfers to run in parallel
     #
@@ -318,8 +318,8 @@ else
     #   --min-age 2h means no files younger than 2 hours will be transferred.
     #
 
-    rclone sync "$FROM" "$rcloneto" --transfers=20 --checkers=15 --delete-after --min-age 2h --log-file=backup_log/$date.log
-    echo "$(date "+%Y-%m-%d %T") RCLONE Upload Apparently Succeeded IN $(($(date +'%s') - $start)) SECONDS" | tee -a backup_log/$date.log
+    rclone sync "$FROM" "$rcloneto" --transfers=20 --checkers=15 --delete-after --min-age 2h --log-file=backup_log/"$date".log
+    echo "$(date "+%Y-%m-%d %T") RCLONE Upload Apparently Succeeded IN $(($(date +'%s') - $start)) SECONDS" | tee -a backup_log/"$date".log
 fi
 
 } # END backup_add
