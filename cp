@@ -191,7 +191,7 @@ progress_bar()
 
 web_server()
 {
- if command -v nginx 2>> ${logfile} >/dev/null
+ if command -v nginx 2>> "${logfile}" >/dev/null
     then
       echo
       echo -e "\t\t\t\tnginx is available\n"
@@ -205,21 +205,21 @@ web_server()
           if yes_no "Install Nginx Web Server"
           then
           echo -e "\t\t\t\tInstalling Nginx From The Official Nginx Repo"
-          sudo wget https://nginx.org/keys/nginx_signing.key 2>> ${logfile} >/dev/null &
-          sudo apt-key add nginx_signing.key 2>> ${logfile} >/dev/null &
+          sudo wget https://nginx.org/keys/nginx_signing.key 2>> "${logfile}" >/dev/null &
+          sudo apt-key add nginx_signing.key 2>> "${logfile}" >/dev/null &
 
           #   We add the below lines to sources.list to name the repositories 
           #   from which the NGINX Open Source source can be obtained:
           #   The lsb_release automatically adds the distro codename
-          echo "deb [arch=amd64] http://nginx.org/packages/mainline/ubuntu `lsb_release -cs` nginx" \
+          echo "deb [arch=amd64] http://nginx.org/packages/mainline/ubuntu $(lsb_release -cs) nginx" \
               | sudo tee -a /etc/apt/sources.list >/dev/null &
 
-          echo "deb-src http://nginx.org/packages/mainline/ubuntu `lsb_release -cs` nginx" \
+          echo "deb-src http://nginx.org/packages/mainline/ubuntu $(lsb_release -cs) nginx" \
               | sudo tee -a /etc/apt/sources.list >/dev/null &
 
 
-          sudo apt-get update 2>> ${logfile} >/dev/null &
-          sudo apt-get -y install nginx 2>> ${logfile} >/dev/null &
+          sudo apt-get update 2>> "${logfile}" >/dev/null &
+          sudo apt-get -y install nginx 2>> "${logfile}" >/dev/null &
 
           # Spinning, While the program installs
           spinner  
@@ -227,7 +227,7 @@ web_server()
           #   Recheck if nginx is installed
           #   Pause to give the user a chance to see what's on the screen
           #
-          if command -v nginx 2>> ${logfile} >/dev/null
+          if command -v nginx 2>> "${logfile}" >/dev/null
             then
             pause_webserver Nginx
             else
@@ -260,7 +260,7 @@ install_certbot()
 
     echo -e "\t\t\t\tYour Email Address: \c"
     read email
-    certbot --nginx -d "$websitename" -d "www.$websitename" -m $email --agree-tos --redirect --hsts --staple-ocsp 2>> ${logfile} >/dev/null &
+    certbot --nginx -d "$websitename" -d "www.$websitename" -m "$email" --agree-tos --redirect --hsts --staple-ocsp 2>> "${logfile}" >/dev/null &
     errorchecker_certbot $?
     echo
     echo -e "\t\t\t\tDone\n"
@@ -277,7 +277,7 @@ install_certbot()
       
 website_secure()
 {
-  if command -v certbot 2>> ${logfile} >/dev/null
+  if command -v certbot 2>> "${logfile}" >/dev/null
     then
       echo
       echo -e "\t\t\t\tcertbot is available\n" "\xE2\x9C\x94\n"
@@ -301,8 +301,8 @@ website_secure()
         echo -e "\t\t\t\tCertbot Seems To Be Missing\n"
         if yes_no "Install Certbot"
         then
-        sudo apt-get update 2>> ${logfile} >/dev/null &
-        sudo apt-get -y install python-certbot-nginx 2>> ${logfile} >/dev/null &
+        sudo apt-get update 2>> "${logfile}" >/dev/null &
+        sudo apt-get -y install python-certbot-nginx 2>> "${logfile}" >/dev/null &
         # Spinning, While the program installs
         spinner
 
@@ -313,8 +313,8 @@ website_secure()
         install_certbot
 
        # reload nginx
-        sudo systemctl enable nginx 2>> ${logfile} >/dev/null &
-        sudo systemctl reload nginx 2>> ${logfile} >/dev/null &
+        sudo systemctl enable nginx 2>> "${logfile}" >/dev/null &
+        sudo systemctl reload nginx 2>> "${logfile}" >/dev/null &
         #
         #   Pause to give the user a chance to see what's on the screen
         #
@@ -359,7 +359,7 @@ usage()
     script=$1
     shift
     echo
-    echo -e "\t\t\t\tUsage: `basename $script` $*\n" 1>&2
+    echo -e "\t\t\t\tUsage: $(basename "$script") $*\n" 1>&2
 
     exit 2
 }
@@ -380,7 +380,7 @@ quit()
 
     if yes_no "Do you really wish to exit"
     then
-        exit $code           #  exit using the supplied code.
+        exit "$code"           #  exit using the supplied code.
     fi
 }
 
@@ -413,9 +413,9 @@ website_create()
     #    \t is one tab \\t is two tab, if you want three tab, you do \\t\t, yh, sed is crazy
     #
 
-     TMPFILE=`mktemp /tmp/nginx.conf.XXXXXXXXXX` || exit 1
-     cat ngx_conf_with_caching > $TMPFILE
-     sudo cp -f $TMPFILE /etc/nginx/nginx.conf # move the temp to nginx.conf
+     TMPFILE=$(mktemp /tmp/nginx.conf.XXXXXXXXXX) || exit 1
+     cat ngx_conf_with_caching > "$TMPFILE"
+     sudo cp -f "$TMPFILE" /etc/nginx/nginx.conf # move the temp to nginx.conf
      # remove the tempfile
      rm "$TMPFILE"
 
@@ -442,11 +442,20 @@ website_create()
 
 
 
-    TMPFILE=`mktemp /tmp/default.nginx.XXXXXXXX` || exit 1
+    TMPFILE=$(mktemp /tmp/default.nginx.XXXXXXXX) || exit 1
 
-    cat ngx_serverblock | sudo sed -e "s/domain.tld/$websitename www.$websitename/g" -e "s/\/var\/www\/wordpress/\/var\/www\/$websitename/" > $TMPFILE
+    #
+    #   This code was originally:
+    # cat ngx_serverblock | sudo sed -e "s/domain.tld/$websitename www.$websitename/g" -e "s/\/var\/www\/wordpress/\/var\/www\/$websitename/" > "$TMPFILE"
+    #   Which is wrong and known as the useless use of cat, It's more efficient and less roundabout to simply use redirection.
+    #
+    #   So, what I did here was first redirecting the content of < "ngx_serverblock" to sed program, I then redirect the output 
+    #   of whatever I get to the > TMPFILE
+    #
 
-    sudo cp -f $TMPFILE $site_available/$websitename
+    sed -e "s/domain.tld/$websitename www.$websitename/g" -e "s/\/var\/www\/wordpress/\/var\/www\/$websitename/" < ngx_serverblock > "$TMPFILE"
+
+    sudo cp -f "$TMPFILE" $site_available/"$websitename"
 
     # remove the tempfile
     rm "$TMPFILE"
@@ -456,8 +465,8 @@ website_create()
     #   Create a directory for the root directory if it doesn't already exist
     #
 
-    if [ ! -d /var/www/$websitename ];then
-    sudo mkdir -p /var/www/$websitename
+    if [ ! -d /var/www/"$websitename" ];then
+    sudo mkdir -p /var/www/"$websitename"
     fi
 
     #   
@@ -466,7 +475,7 @@ website_create()
 
     if [ -f $site_enabled/default ];then
 
-      sudo unlink $site_enabled/default 2>> ${logfile} >/dev/null &
+      sudo unlink $site_enabled/default 2>> "${logfile}" >/dev/null &
 
     fi
 
@@ -478,16 +487,16 @@ website_create()
     #
 
 
-    if [ ! -f $site_enabled/$websitename ];then
+    if [ ! -f $site_enabled/"$websitename" ];then
 
-          sudo ln -s $site_available/$websitename /etc/nginx/sites-enabled/ 2>> ${logfile} >/dev/null &
+          sudo ln -s $site_available/"$websitename" /etc/nginx/sites-enabled/ 2>> "${logfile}" >/dev/null &
 
     fi
 
     # reload nginx
-    sudo systemctl start nginx 2>> ${logfile} >/dev/null &
-    sudo systemctl enable nginx  2>> ${logfile} >/dev/null &
-    sudo systemctl reload nginx 2>> ${logfile} >/dev/null &
+    sudo systemctl start nginx 2>> "${logfile}" >/dev/null &
+    sudo systemctl enable nginx  2>> "${logfile}" >/dev/null &
+    sudo systemctl reload nginx 2>> "${logfile}" >/dev/null &
 
     errorchecker $?
     #
@@ -524,7 +533,7 @@ mysql_secure_installation() {
         #   Checking if both passwords match
         #
 
-        if [ $mysqlpass != $mysqlpass2 ]; then
+        if [ "$mysqlpass" != "$mysqlpass2" ]; then
             echo
             echo -e "\t\t\t\tPasswords do not match, Please Try again"
         else
@@ -536,9 +545,16 @@ mysql_secure_installation() {
 
     done # Endwhile loop
 
-    TMPFILE=`mktemp /tmp/mysql_secure_installation.XXXXXXXXXX` || exit 1
-    cat mysql_secure_installation.sql | sed -e "s/123456789/$mysqlpass/" > $TMPFILE
-    sudo cp -f $TMPFILE mysql_secure_installation.sql # move the temp to mysql_secure_installation.sql
+    TMPFILE=$(mktemp /tmp/mysql_secure_installation.XXXXXXXXXX) || exit 1
+    #
+    #   This code was originally cat mysql_secure_installation.sql | sed -e "s/123456789/$mysqlpass/" > "$TMPFILE"
+    #   Which is wrong and known as the useless use of cat, It's more efficient and less roundabout to simply use redirection.
+    #
+    #   So, what I did here was first redirecting the content of < "mysql_secure_installation.sql" to sed program, I then redirect the output 
+    #   of whatever I get to the > TMPFILE
+    #
+    sed -e "s/123456789/$mysqlpass/" < mysql_secure_installation.sql > "$TMPFILE"
+    sudo cp -f "$TMPFILE" mysql_secure_installation.sql # move the temp to mysql_secure_installation.sql
     # remove the tempfile
     rm "$TMPFILE"
 
@@ -564,7 +580,7 @@ install_mariadb_php()
   # Let's Install PHP and Mariadb
   #
   
-if command -v mariadb 2>> ${logfile} &>/dev/null && command -v php 2>> ${logfile} &>/dev/null
+if command -v mariadb 2>> "${logfile}" && command -v php 2>> "${logfile}"
     then
       echo
       echo -e "\t\t\t\tMariadb and PHP is available\n"
@@ -589,7 +605,7 @@ if command -v mariadb 2>> ${logfile} &>/dev/null && command -v php 2>> ${logfile
 
           sudo apt-get -y install mariadb-server php7.2 php7.2-cli php7.2-fpm php7.2-mysql \
           php7.2-json php7.2-opcache php7.2-mbstring php7.2-xml php7.2-gd \
-          php7.2-curl 2>> ${logfile} >/dev/null &
+          php7.2-curl 2>> "${logfile}" >/dev/null &
 
           # Spinning, While the program installs
           spinner  
@@ -601,9 +617,9 @@ if command -v mariadb 2>> ${logfile} &>/dev/null && command -v php 2>> ${logfile
             mysql_secure_installation
             install_cp_wp
 
-          sudo systemctl start  mariadb 2>> ${logfile} >/dev/null &
+          sudo systemctl start  mariadb 2>> "${logfile}" >/dev/null &
 
-          sudo systemctl enable  mariadb 2>> ${logfile} >/dev/null &
+          sudo systemctl enable  mariadb 2>> "${logfile}" >/dev/null &
         #
         #   They didn't want to Install PHP 
         #
@@ -660,7 +676,7 @@ install_cp_wp()
                       #   Checking if both passwords match
                       #
 
-                      if [ $CpDBPass != $CpDBPass2 ]; then
+                      if [ "$CpDBPass" != "$CpDBPass2" ]; then
                           echo
                           echo -e "\t\t\t\tPasswords do not match, Please Try again"
                       else
@@ -696,7 +712,7 @@ MYSQL_SCRIPT
             # Preparing Temp Directing for Downloading latest Wordpress/ClassicPress tarball and extraction
             #
 
-            TMPDIR=`mktemp -d /tmp/cp_wp.XXXXXXXXXX` || exit 1
+            TMPDIR=$(mktemp -d /tmp/cp_wp.XXXXXXXXXX) || exit 1
             echo
             echo -e "\t\t\t\tWhat Do You Wish To Do?\n"
             while :
@@ -733,28 +749,32 @@ MYSQL_SCRIPT
                 echo -e "\t\t\t\tWe Proceed with ClassicPress\n"
                 echo -e "\t\t\t\tDownloading Latest Classicpress To a Temp Directory"
         
-                wget https://www.classicpress.net/latest.tar.gz -O $TMPDIR/cplatest.tar.gz 2>> ${logfile} &>/dev/null
+                wget https://www.classicpress.net/latest.tar.gz -O "$TMPDIR"/cplatest.tar.gz 2>> "${logfile}" &
 
                 spinner
                 #
                 #   Extract the file, and extract it into a folder
                 #
 
-                mkdir -p $TMPDIR/classicpress && tar -zxf  $TMPDIR/cplatest.tar.gz -C $TMPDIR/classicpress --strip-components 1 2>> ${logfile} &>/dev/null
+                mkdir -p "$TMPDIR"/classicpress && tar -zxf  "$TMPDIR"/cplatest.tar.gz -C "$TMPDIR"/classicpress --strip-components 1 2>> "${logfile}" &
 
                 errorchecker $?
 
-                cp -f $TMPDIR/classicpress/wp-config-sample.php $TMPDIR/classicpress/wp-config.php &>/dev/null
+                cp -f "$TMPDIR"/classicpress/wp-config-sample.php "$TMPDIR"/classicpress/wp-config.php &>/dev/null
 
                 errorchecker $?
 
-                cp -a $TMPDIR/classicpress/. /var/www/$websitename 2>> ${logfile} &>/dev/null
+                cp -a "$TMPDIR"/classicpress/. /var/www/"$websitename" 2>> "${logfile}" &
+                
+                wait $!
 
                 errorchecker $?
 
-                sudo rm -R $TMPDIR
+                sudo rm -R "$TMPDIR"
 
-                sudo rm -f /var/www/html/index.nginx-debian.html &>/dev/null
+                sudo rm -f /var/www/html/index.nginx-debian.html &
+                
+                wait $!
 
                 errorchecker $?
                 echo
@@ -775,28 +795,28 @@ MYSQL_SCRIPT
                 #   Change directory and file user and group to www-data
                 #
 
-                chown -R www-data:www-data /var/www/$websitename
+                chown -R www-data:www-data /var/www/"$websitename"
 
                 #
                 #   Chnage permission of all directroy and file under websitename
                 #
 
-                find /var/www/$websitename -type d -exec chmod 755 {} \;
+                find /var/www/"$websitename" -type d -exec chmod 755 {} \;
 
-                find /var/www/$websitename -type f -exec chmod 644 {} \;
+                find /var/www/"$websitename" -type f -exec chmod 644 {} \;
 
                 #
                 #   Change permission of wp-config
                 #
 
-                chmod 660  /var/www/$websitename/wp-config.php
+                chmod 660  /var/www/"$websitename"/wp-config.php
 
                 #
                 #   Allow ClassicPress To Manage Wp-content
                 #
 
-                find /var/www/$websitename/wp-content -type d -exec chmod 775 {} \;
-                find /var/www/$websitename/wp-content -type f -exec chmod 664 {} \;
+                find /var/www/"$websitename"/wp-content -type d -exec chmod 775 {} \;
+                find /var/www/"$websitename"/wp-content -type f -exec chmod 664 {} \;
 
                 #
                 #   Writing ClassicPress config file with collected config data
@@ -804,17 +824,17 @@ MYSQL_SCRIPT
 
                 echo -e "\t\t\t\tWriting ClassicPress config file with collected config data...\n"
 
-                sed -i "s/database_name_here/$CpDBName/" /var/www/$websitename/wp-config.php
+                sed -i "s/database_name_here/$CpDBName/" /var/www/"$websitename"/wp-config.php
 
-                sed -i "s/username_here/$CpDBUser/" /var/www/$websitename/wp-config.php
+                sed -i "s/username_here/$CpDBUser/" /var/www/"$websitename"/wp-config.php
 
-                sed -i "s/password_here/$CpDBPass/" /var/www/$websitename/wp-config.php
+                sed -i "s/password_here/$CpDBPass/" /var/www/"$websitename"/wp-config.php
 
                 progress_bar
                 # reload nginx
-                sudo systemctl start nginx 2>> ${logfile} >/dev/null &
-                sudo systemctl enable nginx 2>> ${logfile} >/dev/null &
-                sudo systemctl reload nginx 2>> ${logfile} >/dev/null &
+                sudo systemctl start nginx 2>> "${logfile}" >/dev/null &
+                sudo systemctl enable nginx 2>> "${logfile}" >/dev/null &
+                sudo systemctl reload nginx 2>> "${logfile}" >/dev/null &
                 echo  "
                 ClassicPress Installation Has Been Completed Successfully
                 Your Error Log file is at  $logfile
@@ -844,7 +864,7 @@ MYSQL_SCRIPT
                 echo -e "\t\t\t\tWe Proceed with WordPress"
                 echo -e "\t\t\t\tDownloading Latest WordPress To a Temp Directory"
                 spinner
-                wget https://wordpress.org/latest.tar.gz -O $TMPDIR/wplatest.tar.gz 2>> ${logfile} &>/dev/null
+                wget https://wordpress.org/latest.tar.gz -O "$TMPDIR"/wplatest.tar.gz 2>> "${logfile}" &
 
                 spinner
                 #
@@ -852,22 +872,26 @@ MYSQL_SCRIPT
                 #
                 #   Extract the file, and extract it into a folder
                 #
-                mkdir -p $TMPDIR/wordpress && tar -zxf  $TMPDIR/latest.tar.gz -C $TMPDIR/wordpress --strip-components 1 2>> ${logfile} &>/dev/null
-
+                mkdir -p "$TMPDIR"/wordpress && tar -zxf  "$TMPDIR"/latest.tar.gz -C "$TMPDIR"/wordpress --strip-components 1 2>> "${logfile}" &
+                
+                wait $!
                 errorchecker $?
 
-                cp -f $TMPDIR/wordpress/wp-config-sample.php $TMPDIR/wordpress/wp-config.php 2>> ${logfile} &>/dev/null
+                cp -f "$TMPDIR"/wordpress/wp-config-sample.php "$TMPDIR"/wordpress/wp-config.php 2>> "${logfile}" &
 
+                wait $!
                 errorchecker $?
 
-                cp -a $TMPDIR/wordpress/. /var/www/$websitename 2>> ${logfile} &>/dev/null
+                cp -a "$TMPDIR"/wordpress/. /var/www/"$websitename" 2>> "${logfile}" &
 
+                wait $!
                 errorchecker $?
 
-                sudo rm -R $TMPDIR
+                sudo rm -R "$TMPDIR"
 
-                sudo rm -f /var/www/html/index.nginx-debian.html 2>> ${logfile} &>/dev/null
+                sudo rm -f /var/www/html/index.nginx-debian.html 2>> "${logfile}" &
 
+                wait $!
                 errorchecker $?
                 echo
                 echo -e "\t\t\t\tAdjusting file and directory permissions..\n"
@@ -887,28 +911,28 @@ MYSQL_SCRIPT
                 #   Chnage directory and file user and group to www-data
                 #
 
-                chown -R www-data:www-data /var/www/$websitename
+                chown -R www-data:www-data /var/www/"$websitename"
 
                 #
                 #   Chnage permission of all directroy and file under websitename
                 #
 
-                find /var/www/$websitename -type d -exec chmod 755 {} \;
+                find /var/www/"$websitename" -type d -exec chmod 755 {} \;
 
-                find /var/www/$websitename -type f -exec chmod 644 {} \;
+                find /var/www/"$websitename" -type f -exec chmod 644 {} \;
 
                 #
                 #   Chnage permission of wp-config
                 #
 
-               chmod 660  /var/www/$websitename/wp-config.php
+               chmod 660  /var/www/"$websitename"/wp-config.php
 
                 #
                 #   Allow WordPress To Manage Wp-content
                 #
 
-                find /var/www/$websitename/wp-content -type d -exec chmod 775 {} \;
-                find /var/www/$websitename/wp-content -type f -exec chmod 664 {} \;
+                find /var/www/"$websitename"/wp-content -type d -exec chmod 775 {} \;
+                find /var/www/"$websitename"/wp-content -type f -exec chmod 664 {} \;
 
                 #
                 #   Writing Wordpress config file with collected config data
@@ -917,15 +941,15 @@ MYSQL_SCRIPT
                 echo -e "\t\t\t\tWriting Wordpress config file with collected config data...\n"
 
  
-                sed -i "s/database_name_here/$CpDBName/" /var/www/$websitename/wp-config.php
+                sed -i "s/database_name_here/$CpDBName/" /var/www/"$websitename"/wp-config.php
 
-                sed -i "s/username_here/$CpDBUser/" /var/www/$websitename/wp-config.php
+                sed -i "s/username_here/$CpDBUser/" /var/www/"$websitename"/wp-config.php
 
-                sed -i "s/password_here/$CpDBPass/" /var/www/$websitename/wp-config.php
+                sed -i "s/password_here/$CpDBPass/" /var/www/"$websitename"/wp-config.php
 
-                sudo systemctl start nginx 2>> ${logfile} >/dev/null &
-                sudo systemctl enable nginx 2>> ${logfile} >/dev/null &
-                sudo systemctl reload nginx 2>> ${logfile} >/dev/null &
+                sudo systemctl start nginx 2>> "${logfile}" >/dev/null &
+                sudo systemctl enable nginx 2>> "${logfile}" >/dev/null &
+                sudo systemctl reload nginx 2>> "${logfile}" >/dev/null &
                 
                 progress_bar
                 echo  "
@@ -959,7 +983,7 @@ MYSQL_SCRIPT
                 #   even if you want to extract a rar file, it still works, even .7z, cool right :)
                 #
 
-                    if command -v atool 2>> ${logfile} &>/dev/null # Checking if the atool package is installed
+                    if command -v atool 2>> "${logfile}" >/dev/null # Checking if the atool package is installed
                     then
                       echo
 
@@ -968,13 +992,13 @@ MYSQL_SCRIPT
                     else
 
                       echo -e "\t\t\t\tInstalling Dependencies...."
-                      sudo apt-get -y install atool 2>> ${logfile} >/dev/null &
+                      sudo apt-get -y install atool 2>> "${logfile}" >/dev/null &
                       spinner
                       echo -e "\t\t\t\tatool dependency Installed, Moving On...." 
 
                     fi # End Checking if the atool package is installed
 
-                 TMPDIR=`mktemp -d /tmp/website_restore_XXXXX` || exit 1
+                 TMPDIR=$(mktemp -d /tmp/website_restore_XXXXX) || exit 1
 
                  while :
                  do
@@ -1023,7 +1047,7 @@ MYSQL_SCRIPT
 
                   echo -e "\t\t\t\tExtracting Into a Temp Directory"
 
-                  aunpack $website_restore -X "$TMPDIR" 2>> ${logfile} &>/dev/null
+                  aunpack "$website_restore" -X "$TMPDIR" 2>> "${logfile}" >/dev/null
 
                   echo -e "\t\t\t\tChecking if You Have Unneccesary folder"
 
@@ -1036,13 +1060,21 @@ MYSQL_SCRIPT
                   #   If there is one, we copy everything recursively into the main folder, and we delete the empty folder
                   #
 
-                  cd $TMPDIR # cd into the Temp Directory
+                  cd "$TMPDIR" || { echo -e "\t\t\t\tCouldn't Change into Temp Directory...Exiting"; return 1; }
 
-                  for i in $(ls)
+                  #
+                  #   This code was originally for i in $(ls), which should be avoidable since 
+                  #   Using command expansion causes word splitting and glob expansion e.g a file with spaces, and other weird file naming
+                  #
+                  #   I changed this to for i in $TMPDIR, but really it really doesn't matter in this case as I have already handle the cases of no
+                  #   matches in the code below
+                  #
+                  
+                  for i in $TMPDIR
 
                   do
 
-                    if [ ! -d "$i" ]  # Id there is no folder, break out
+                    if [ ! -d "$i" ]  # If there is no folder, break out
                     then
                     echo -e "\t\t\t\tYou Don't Have an Unnecessary Folder, Moving On."
                     break
@@ -1051,7 +1083,7 @@ MYSQL_SCRIPT
 
                     echo -e "\t\t\t\tYou have an unnecessary folder, next time, make sure you are not archiving a folder along your files, \n\t\t\t\tLet me take care of that for you..."
 
-                    \cp -a $i/. $TMPDIR/
+                    \cp -a "$i"/. "$TMPDIR"/
 
                     fi
 
@@ -1061,7 +1093,7 @@ MYSQL_SCRIPT
                   # Go back into the script directory
                   #
                   SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
-                  cd $SCRIPT_DIR
+                  cd "$SCRIPT_DIR"
 
                   spinner
 
@@ -1078,11 +1110,11 @@ MYSQL_SCRIPT
 
                             echo -e "\t\t\t\tMoving Into The Real Directory"
 
-                            cp -a $TMPDIR/. /var/www/$websitename 2>> ${logfile} &>/dev/null
+                            cp -a "$TMPDIR"/. /var/www/"$websitename" 2>> "${logfile}" >/dev/null
 
                             errorchecker_restore $?
 
-                            sudo rm -R $TMPDIR
+                            sudo rm -R "$TMPDIR"
 
                             echo
 
@@ -1092,34 +1124,34 @@ MYSQL_SCRIPT
                           #   Change directory and file user and group to www-data
                           #
 
-                          chown -R www-data:www-data /var/www/$websitename
+                          chown -R www-data:www-data /var/www/"$websitename"
 
                           #
                           #   Chnage permission of all directroy and file under websitename
                           #
 
-                          find /var/www/$websitename -type d -exec chmod 755 {} \;
+                          find /var/www/"$websitename" -type d -exec chmod 755 {} \;
 
-                          find /var/www/$websitename -type f -exec chmod 644 {} \;
+                          find /var/www/"$websitename" -type f -exec chmod 644 {} \;
 
                           #
                           #   Chnage permission of wp-config
                           #
 
-                          chmod 660  /var/www/$websitename/wp-config.php
+                          chmod 660  /var/www/"$websitename"/wp-config.php
 
                           #
                           #   Allow ClassicPress To Manage Wp-content
                           #
 
-                          find /var/www/$websitename/wp-content -type d -exec chmod 775 {} \;
-                          find /var/www/$websitename/wp-content -type f -exec chmod 664 {} \;
+                          find /var/www/"$websitename"/wp-content -type d -exec chmod 775 {} \;
+                          find /var/www/"$websitename"/wp-content -type f -exec chmod 664 {} \;
 
 
 
                            echo -e "\t\t\t\tFinalizing Restoration...\n"
 
-                           mysql --user="$CpDBUser" --password="$CpDBPass" $CpDBName < $db_file
+                           mysql --user="$CpDBUser" --password="$CpDBPass" "$CpDBName" < "$db_file"
 
                           progress_bar
                           # reload nginx
@@ -1143,11 +1175,11 @@ MYSQL_SCRIPT
 
                   echo -e "\t\t\t\tMoving Into The Real Directory"
 
-                  cp -a $TMPDIR/. /var/www/$websitename 2>> ${logfile} &>/dev/null
+                  cp -a "$TMPDIR"/. /var/www/"$websitename" 2>> "${logfile}" >/dev/null
 
                   errorchecker_restore $?
 
-                  sudo rm -R $TMPDIR
+                  sudo rm -R "$TMPDIR"
 
                   echo
 
@@ -1157,36 +1189,36 @@ MYSQL_SCRIPT
                 #   Change directory and file user and group to www-data
                 #
 
-                chown -R www-data:www-data /var/www/$websitename
+                chown -R www-data:www-data /var/www/"$websitename"
 
                 #
                 #   Chnage permission of all directroy and file under websitename
                 #
 
-                find /var/www/$websitename -type d -exec chmod 755 {} \;
+                find /var/www/"$websitename" -type d -exec chmod 755 {} \;
 
-                find /var/www/$websitename -type f -exec chmod 644 {} \;
+                find /var/www/"$websitename" -type f -exec chmod 644 {} \;
 
                 #
                 #   Chnage permission of wp-config
                 #
 
-               chmod 660  /var/www/$websitename/wp-config.php
+               chmod 660  /var/www/"$websitename"/wp-config.php
 
                 #
                 #   Allow ClassicPress To Manage Wp-content
                 #
 
-                find /var/www/$websitename/wp-content -type d -exec chmod 775 {} \;
-                find /var/www/$websitename/wp-content -type f -exec chmod 664 {} \;
+                find /var/www/"$websitename"/wp-content -type d -exec chmod 775 {} \;
+                find /var/www/"$websitename"/wp-content -type f -exec chmod 664 {} \;
 
                 echo -e "\t\t\t\tFinalizing Restoration...\n"
 
-                mysql --user="$CpDBUser" --password="$CpDBPass" $CpDBName < $db_file
+                mysql --user="$CpDBUser" --password="$CpDBPass" "$CpDBName" < "$db_file"
 
                 progress_bar
                 # reload nginx
-                sudo systemctl reload nginx 2>> ${logfile} >/dev/null &
+                sudo systemctl reload nginx 2>> "${logfile}" >/dev/null &
 
                 echo "
                      $websitename restored, Check if you can access the website, 
@@ -1283,7 +1315,7 @@ sftp(){
   read sftp_user
 
 # Does User exist?
-id $sftp_user &> /dev/null
+id "$sftp_user" &> /dev/null
 if [ $? -eq 0 ]; then
     echo -e "\t\t\t$sftp_user exists"
         if yes_no "Do you want to change password instead?"
@@ -1300,7 +1332,7 @@ if [ $? -eq 0 ]; then
               #   Checking if both passwords match
               #
 
-              if [ $pass1 != $pass2 ]; then
+              if [ "$pass1" != "$pass2" ]; then
                   echo
                   echo -e "\t\t\t\tPasswords do not match, Please Try again"
               else
@@ -1317,11 +1349,11 @@ if [ $? -eq 0 ]; then
 
 else
 
-  if [ ! -d $chroot_dir/$sftp_user ];then
+  if [ ! -d $chroot_dir/"$sftp_user" ];then
     echo -e "\t\t\t\t$sftp_user directory and user does not exist yet...creating"
 
-    mkdir -p $chroot_dir/$sftp_user/
-    mkdir -p $chroot_dir/$sftp_user/$websitename
+    mkdir -p $chroot_dir/"$sftp_user"/
+    mkdir -p $chroot_dir/"$sftp_user"/"$websitename"
     echo -e "\t\t\t\t$sftp_user created"
   fi  
 
@@ -1330,7 +1362,7 @@ else
     #   The user won't be able to SSH into the server, but can only access through SFTP for transferring files
     #
 
-    useradd -d $chroot_dir/$sftp_user/ -s /usr/sbin/nologin -G $SFTP_ONLY_GROUP $sftp_user
+    useradd -d $chroot_dir/"$sftp_user"/ -s /usr/sbin/nologin -G $SFTP_ONLY_GROUP "$sftp_user"
 
     while : # Unless Password Matches, Keep Looping
     do
@@ -1345,7 +1377,7 @@ else
         #   Checking if both passwords match
         #
 
-        if [ $pass1 != $pass2 ]; then
+        if [ "$pass1" != "$pass2" ]; then
             echo
             echo -e "\t\t\t\tPasswords do not match, Please Try again"
         else
@@ -1369,19 +1401,19 @@ else
     echo -e "\t\t\t\tSetting Proper User Permissions..."
 
     chmod 711 $chroot_dir
-    chmod 755 $chroot_dir/$sftp_user/
+    chmod 755 $chroot_dir/"$sftp_user"/
     chown root:root $chroot_dir # chowning the chroot_directory
 
     #   Setting the permissions of the mount directory
 
-    chown $sftp_user:$SFTP_ONLY_GROUP $chroot_dir/$sftp_user/$websitename/
-    chmod 700 $chroot_dir/$sftp_user/$websitename/
+    chown "$sftp_user":$SFTP_ONLY_GROUP $chroot_dir/"$sftp_user"/"$websitename"/
+    chmod 700 $chroot_dir/"$sftp_user"/"$websitename"/
 
     #
     #   The below forces any new files or directories created by this user to have a group matching the parent directory
     #
 
-    find /var/www/$websitename/ -type d -exec chmod g+s {} \;
+    find /var/www/"$websitename"/ -type d -exec chmod g+s {} \;
 
     #
     #   Now we mount a specific directory to the users chrooted home directory.
@@ -1389,7 +1421,7 @@ else
     #   ($chroot_dir/$sftp_user/$websitename/)
     #
 
-      mount -o bind /var/www/$websitename $chroot_dir/$sftp_user/$websitename
+      mount -o bind /var/www/"$websitename" $chroot_dir/"$sftp_user"/"$websitename"
 
     #
     #   The /etc/fstab file is a system configuration file that contains all 
@@ -1438,7 +1470,7 @@ dns()
     #   of DNS information on the internet, it also faciliate the resolving of DNS queries
     #   Since Bind is the most popular DNS program, this is what we would be using.
     #
-    if command -v named 2>> ${logfile} &>/dev/null
+    if command -v named 2>> "${logfile}" >/dev/null
     then
       echo
 
@@ -1447,7 +1479,7 @@ dns()
     else
 
       echo -e "\t\t\t\tInstalling Bind9...."
-      sudo apt-get -y install bind9 dnsutils 2>> ${logfile} >/dev/null &
+      sudo apt-get -y install bind9 dnsutils 2>> "${logfile}" >/dev/null &
       spinner
 
       echo -e "\t\t\t\tBind9 Installed, Moving On...." 
@@ -1486,7 +1518,7 @@ dns()
           #   Checking if the domain name matches
           #
 
-          if [ $nameserver != $nameserver2 ]; then
+          if [ "$nameserver" != "$nameserver2" ]; then
               echo -e "\t\t\t\tDomain name do not match, Please Try again"
           else
               echo -e "\t\t\t\tDomain Matches, Moving On..." 
@@ -1500,11 +1532,11 @@ echo -e "\t\t\t\tSetting Custom NameServer"
           #   Store The Both Custom NameServers
           #
 
-          ns1=`cat "$customnameserver" | sed -n '1p'`
-          ns2=`cat "$customnameserver" | sed -n '2p'`
+          ns1=$(sed -n '1p' < "$customnameserver")
+          ns2=$(sed -n '2p' < "$customnameserver")
 
-          TMPFILE=`mktemp /tmp/named.conf.XXXXXXX` || exit 1
-          cat $named_local > $TMPFILE
+          TMPFILE=$(mktemp /tmp/named.conf.XXXXXXX) || exit 1
+          cat $named_local > "$TMPFILE"
           #
           #   A zone is a domain name that is referenced in the DNS server.
           #
@@ -1513,22 +1545,22 @@ echo "// Forward Zone File of $websitename
 zone \"$nameserver\" {
       type master;
       file \"/etc/bind/db.$nameserver\";
-};" >> $TMPFILE
+};" >> "$TMPFILE"
           
-          sudo cp -f $TMPFILE $named_local # move the temp to nginx.conf
+          sudo cp -f "$TMPFILE" $named_local # move the temp to nginx.conf
           # remove the tempfile
           rm "$TMPFILE"
 
           zone_file=/etc/bind/db.$nameserver
 
           echo -e "\t\t\t\tPreparing Zone File\n"
-          TMPFILE=`mktemp /tmp/zone.conf.XXXXXXX` || exit 1
-          sudo cp $db_local $TMPFILE
+          TMPFILE=$(mktemp /tmp/zone.conf.XXXXXXX) || exit 1
+          sudo cp $db_local "$TMPFILE"
 
 
-          date=`date +"%Y%m%d"`
+          date=$(date +"%Y%m%d")
 
-          rootemail=`cat "$customnameserver" | sed -n '1s/ns1./root./p'`
+          rootemail=$(cat "$customnameserver" | sed -n '1s/ns1./root./p')
           #
           #   Get Server IP
           #
@@ -1556,10 +1588,10 @@ smtp    IN      A       $ip
 pop     IN      A       $ip
 imap    IN      A       $ip
 @       IN      TXT    \"v=spf1 a mx ip4:$ip ~all\"
-_dmarc  IN      TXT     \"v=DMARC1; p=quarantine; pct=100\"" > $TMPFILE
+_dmarc  IN      TXT     \"v=DMARC1; p=quarantine; pct=100\"" > "$TMPFILE"
 
-          sudo cp -f $TMPFILE /etc/bind/db.$nameserver
-          sudo chmod 640 /etc/bind/db.$nameserver
+          sudo cp -f "$TMPFILE" /etc/bind/db."$nameserver"
+          sudo chmod 640 /etc/bind/db."$nameserver"
 
           # remove the tempfile
           rm "$TMPFILE"
@@ -1666,8 +1698,8 @@ zone_add ()
     named_local=/etc/bind/named.conf.local
     db_local=/etc/bind/db.local
 
-    TMPFILE=`mktemp /tmp/named.conf.XXXXXXX` || exit 1
-    cat "$named_local" > $TMPFILE
+    TMPFILE=$(mktemp /tmp/named.conf.XXXXXXX) || exit 1
+    cat "$named_local" > "$TMPFILE"
     #
     #   A zone is a domain name that is referenced in the DNS server.
     #
@@ -1676,28 +1708,28 @@ echo "
 zone \"$websitename\" {
     type master;
     file \"/etc/bind/db.$websitename\";
-};" >> $TMPFILE
+};" >> "$TMPFILE"
     
-    sudo cp -f $TMPFILE $named_local # move the temp to nginx.conf
+    sudo cp -f "$TMPFILE" $named_local # move the temp to nginx.conf
     # remove the tempfile
     rm "$TMPFILE"
 
     zone_file=/etc/bind/db.$websitename
 
     echo -e "\t\t\t\tPreparing Zone File\n"
-    TMPFILE=`mktemp /tmp/zone.conf.XXXXXXX` || exit 1
-    sudo cp $db_local $TMPFILE
+    TMPFILE=$(mktemp /tmp/zone.conf.XXXXXXX) || exit 1
+    sudo cp $db_local "$TMPFILE"
 
 
-    date=`date +"%Y%m%d"`
+    date=$(date +"%Y%m%d")
 
-    rootemail=`cat custom_nameserver | sed -n '1s/ns1./root./p'`
+    rootemail=$(cat custom_nameserver | sed -n '1s/ns1./root./p')
     #
     #   Store The Both Custom NameServers
     #
 
-    ns1=`cat "$customnameserver" | sed -n '1p'`
-    ns2=`cat "$customnameserver" | sed -n '2p'`
+    ns1=$(sed -n '1p' < "$customnameserver")
+    ns2=$(sed -n '2p' < "$customnameserver")
 
     #
     #   Get Server IP
@@ -1725,10 +1757,10 @@ smtp    IN      A       $DomainIP
 pop     IN      A       $DomainIP
 imap    IN      A       $DomainIP
 @       IN      TXT    \"v=spf1 a mx ip4:$ip ~all\"
-_dmarc  IN      TXT     \"v=DMARC1; p=quarantine; pct=100\"" > $TMPFILE
+_dmarc  IN      TXT     \"v=DMARC1; p=quarantine; pct=100\"" > "$TMPFILE"
 
-    sudo cp -f $TMPFILE /etc/bind/db.$websitename
-    sudo chmod 640 /etc/bind/db.$websitename
+    sudo cp -f "$TMPFILE" /etc/bind/db."$websitename"
+    sudo chmod 640 /etc/bind/db."$websitename"
 
     # remove the tempfile
     rm "$TMPFILE"
@@ -1744,7 +1776,7 @@ _dmarc  IN      TXT     \"v=DMARC1; p=quarantine; pct=100\"" > $TMPFILE
 zone_edit () {
   if yes_no "You Are About To Edit $websitename Zone File, is That Correct "
   then
-    nano /etc/bind/db.$websitename
+    nano /etc/bind/db."$websitename"
     #
     #   The Serial in the zone file is one of the record that would frustrate you like hell
     #   If you are doing things manually, the reason is because it's not enough to just update the  
@@ -1755,10 +1787,10 @@ zone_edit () {
     #   and then increment it by 1 anytime we make changes, cool right
     #
     #
-    oldserial=`cat /etc/bind/db.$websitename | sed -n '6s/; Serial//p'`
-    newserial=$(expr $oldserial + 1)
+    oldserial=$(cat /etc/bind/db."$websitename" | sed -n '6s/; Serial//p')
+    newserial=$(expr "$oldserial" + 1)
 
-    sed -i "s/$oldserial/\\t\t\\t$newserial\\t/" /etc/bind/db.$websitename
+    sed -i "s/$oldserial/\\t\t\\t$newserial\\t/" /etc/bind/db."$websitename"
     echo -e "\t\t\t\tRestarting Services\n"
     service bind9 restart
 
@@ -1768,19 +1800,19 @@ zone_edit () {
 
     read -p  $'\t\t\t\t'"Enter Website You Would Like To Edit Its Zone: " zonewebsite
 
-    if [ ! -f /etc/bind/db.$zonewebsite ]
+    if [ ! -f /etc/bind/db."$zonewebsite" ]
       then
 
           echo -e "\t\t\tThere is no such zone file"
           return 1
     else
 
-        nano /etc/bind/db.$zonewebsite
+        nano /etc/bind/db."$zonewebsite"
 
-        oldserial=`cat /etc/bind/db.$websitename | sed -n '6s/; Serial//p'`
-        newserial=$(expr $oldserial + 1)
+        oldserial=$(cat /etc/bind/db."$websitename" | sed -n '6s/; Serial//p')
+        newserial=$(expr "$oldserial" + 1)
 
-        sed -i "s/$oldserial/\\t\t\\t\t\\t\t\\t\t\\t\t\\t\t\\t$newserial\\t\t/" /etc/bind/db.$websitename
+        sed -i "s/$oldserial/\\t\t\\t\t\\t\t\\t\t\\t\t\\t\t\\t$newserial\\t\t/" /etc/bind/db."$websitename"
         echo -e "\t\t\t\tRestarting Services\n"
         service bind9 restart
 
@@ -1795,7 +1827,7 @@ zone_delete ()
 {
   read -p  $'\t\t\t\t'"Enter Website of The Zone You Would Want Deleted: " zonewebsite
 
-  if [ ! -f /etc/bind/db.$zonewebsite ]
+  if [ ! -f /etc/bind/db."$zonewebsite" ]
       then
 
           echo -e "\t\t\tThere is no such zone file"
@@ -1804,13 +1836,13 @@ zone_delete ()
 
     if yes_no "Are You Sure About The Zone Deletion of $zonewebsite "
     then
-    TMPFILE=`mktemp /tmp/delete.$zonewebsite.XXXXX` || exit 1
-    sudo cp $named_local $TMPFILE
+    TMPFILE=$(mktemp /tmp/delete."$zonewebsite".XXXXX) || exit 1
+    sudo cp $named_local "$TMPFILE"
     sed -nie "/\"$zonewebsite\"/,/^\};"'$/d;p;' TMPFILE
 
-    sudo cp -f $TMPFILE $named_local
+    sudo cp -f "$TMPFILE" $named_local
 
-    rm /etc/bind/db.$zonewebsite
+    rm /etc/bind/db."$zonewebsite"
 
     # remove the tempfile
     rm "$TMPFILE"
@@ -1847,17 +1879,17 @@ then
 echo
 echo -e "\t\t\t\tphpmyadmin not installed...."
 echo -e "\t\t\t\tInstalling...."
-DEBIAN_FRONTEND=noninteractive apt-get -yq install phpmyadmin 2>> ${logfile} >/dev/null & # Install it without prompting interactive
+DEBIAN_FRONTEND=noninteractive apt-get -yq install phpmyadmin 2>> "${logfile}" >/dev/null & # Install it without prompting interactive
 spinner
 
 echo -e "\t\t\t\tUbuntu 18.04 Ships With phpmyadmin 4.6.6, Let's Remove That and Download The Latest Version.."
 echo -e "\t\t\t\tas This can fix a couple of Errors When Using phpmyadmin"
 
-wget -O phpmyadmin_5.0.zip https://files.phpmyadmin.net/phpMyAdmin/5.0.0/phpMyAdmin-5.0.0-all-languages.zip 2>> ${logfile} >/dev/null
+wget -O phpmyadmin_5.0.zip https://files.phpmyadmin.net/phpMyAdmin/5.0.0/phpMyAdmin-5.0.0-all-languages.zip 2>> "${logfile}" >/dev/null
 
 echo -e "\t\t\t\tunzip is required for extraction, checking if it is installed...."
 
-if command -v unzip 2>> ${logfile} &>/dev/null # Checking if the unzip package is installed
+if command -v unzip 2>> "${logfile}" >/dev/null # Checking if the unzip package is installed
 then
     echo
     echo -e "\t\t\t\tUnzip Okay...."
@@ -1865,7 +1897,7 @@ then
 else
 
     echo -e "\t\t\t\tUnzip isn't installed, this is required for the extraction. installing...."
-    sudo apt-get -y install unzip 2>> ${logfile} >/dev/null &
+    sudo apt-get -y install unzip 2>> "${logfile}" >/dev/null &
     spinner
     echo -e "\t\t\t\tUnzip Installed, Moving On...." 
 
@@ -1873,7 +1905,7 @@ fi # End Checking if the unzip package is installed
 
 echo -e "\t\t\t\tUnzipping The New phpmyadmin ...."
 
-unzip phpmyadmin_5.0.zip 2>> ${logfile} >/dev/null &
+unzip phpmyadmin_5.0.zip 2>> "${logfile}" >/dev/null &
 spinner
 
 echo -e "\t\t\t\tBacking up The Former phpMyAdmin files"
@@ -1924,7 +1956,7 @@ pmapass=
                       #   Checking if both passwords match
                       #
 
-          if [ $pmapass != $pmapass2 ]; then
+          if [ "$pmapass" != "$pmapass2" ]; then
             echo
             echo -e "\t\t\t\tPasswords do not match, Please Try again"
           else
@@ -1971,25 +2003,33 @@ do
 
 done
 
-TMPFILE=`mktemp /tmp/pma.nginx.XXXXXXXX` || exit 1
+TMPFILE=$(mktemp /tmp/pma.nginx.XXXXXXXX) || exit 1
 
-    cat pma_nginx_config | sudo sed -e "s/phpmyadmin.com/$pmaurl.$websitename/g" > $TMPFILE
+    #
+    #   This code was originally cat pma_nginx_config | sudo sed -e "s/phpmyadmin.com/$pmaurl.$websitename/g" > "$TMPFILE"
+    #   Which is wrong and known as the useless use of cat, It's more efficient and less roundabout to simply use redirection.
+    #
+    #   So, what I did here was first redirecting the content of < "pma_nginx_config" to sed program, I then redirect the output 
+    #   of whatever I get to the > TMPFILE
+    #
 
-    sudo cp -f $TMPFILE /etc/nginx/sites-enabled/phpmyadmin
+    sed -e "s/phpmyadmin.com/$pmaurl.$websitename/g" < pma_nginx_config > "$TMPFILE"
+
+    sudo cp -f "$TMPFILE" /etc/nginx/sites-enabled/phpmyadmin
 
     # remove the tempfile
     rm "$TMPFILE"
 
     # reload nginx
-    sudo systemctl enable nginx  2>> ${logfile} >/dev/null &
-    sudo systemctl reload nginx 2>> ${logfile} >/dev/null &
+    sudo systemctl enable nginx  2>> "${logfile}" >/dev/null &
+    sudo systemctl reload nginx 2>> "${logfile}" >/dev/null &
 
     if yes_no "Do you want to secure the phpmyadmin dashboard with Let's Encrypt"
        then
 
         echo -e "\t\t\t\tYour Email Address: \c"
         read email
-        certbot --nginx -d "$pmaurl.$websitename"-d -m $email --agree-tos --redirect --hsts --staple-ocsp 2>> ${logfile} >/dev/null &
+        certbot --nginx -d "$pmaurl.$websitename"-d -m "$email" --agree-tos --redirect --hsts --staple-ocsp 2>> "${logfile}" >/dev/null &
         errorchecker_certbot $?
         echo
         echo -e "\t\t\t\tDone\n"
@@ -2022,13 +2062,13 @@ fi
 #   typed in on the command line (e.g. "/home/mark/menu")
 #
 echo
-[ $# == 1 ] || usage $0 websitename.com         # exits the program
+[ $# == 1 ] || usage "$0" websitename.com         # exits the program
 echo
 
 
 logfile=errorlog.txt
 
-sudo apt-get -y install boxes 2>> ${logfile} &>/dev/null &
+sudo apt-get -y install boxes 2>> ${logfile} &
 spinner
 
 echo "
@@ -2063,7 +2103,7 @@ websitename=$1
 #
 #   Check if the filename represents a valid file.
 #
-if [ ! -e  $site_available/$websitename ]
+if [ ! -e  $site_available/"$websitename" ]
 then
     echo -e "\t\t\t\t$1 does not exist"
 
@@ -2075,14 +2115,14 @@ then
         #
         #   Attempt to create it
         #
-        > $site_available/$websitename
+        > $site_available/"$websitename"
 
         #
         #   Check if that succeeeded, i.e does user has a permission to create a file
         #
-        if [ ! -w $site_available/$websitename ]
+        if [ ! -w $site_available/"$websitename" ]
         then
-            echo $1 could not be created, check your user permission
+            echo "$1" could not be created, check your user permission
             exit 2
         fi
         #
@@ -2095,7 +2135,7 @@ then
         #
         exit 0
     fi
-elif [ ! -w $site_available/$websitename ]    # it exists - check if it can be written to
+elif [ ! -w $site_available/"$websitename" ]    # it exists - check if it can be written to
 then
     echo -e "\t\t\t\tCould not open $1 for writing, check your user permission"
     exit 2
